@@ -20,161 +20,174 @@ const details = () => ({
   Version: '1.00',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
   Inputs: [{
-	name: 'minBitrate4K',
-	type: 'number',
-	defaultValue: '20000',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 3840 x 2160 stream.',
+    name: 'minBitrate4K',
+    type: 'number',
+    defaultValue: '20000',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 3840 x 2160 stream.',
   },
   {
-	name: 'minBitrate1080p',
-	type: 'number',
-	defaultValue: '5000',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 1920 x 1080 stream.',
+    name: 'minBitrate1080p',
+    type: 'number',
+    defaultValue: '5000',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 1920 x 1080 stream.',
   },
   {
-	name: 'minBitrate720p',
-	type: 'number',
-	defaultValue: '2200',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 1280 x 720 stream.',
+    name: 'minBitrate720p',
+    type: 'number',
+    defaultValue: '2200',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 1280 x 720 stream.',
   },
   {
-	name: 'minBitrate480p',
-	type: 'number',
-	defaultValue: '750',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 640 x 480 stream.',
+    name: 'minBitrate480p',
+    type: 'number',
+    defaultValue: '750',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'The minimum acceptable bitrate, in kbps, to allow downsampling of a 640 x 480 stream.',
   },
   {
-	name: 'audioBitrate',
-	type: 'number',
-	defaultValue: '64',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'Desired audio bitrate per channel in kbps. 64K per channel gives you good lossy quality out of AAC.',
+    name: 'encode10bit',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Re-encode 8bit color depth to 10bit.',
   },
   {
-	name: 'audioChannels',
-	type: 'number',
-	defaultValue: '6',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'Maximum number of audio channels, anything more than this will be reduced.'
-	  + '\\nExample: 2.1 = 3, 5.1 = 6, 7.1 = 8\\n',
+    name: 'audioBitrate',
+    type: 'number',
+    defaultValue: '64',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'Desired audio bitrate per channel in kbps. 64K per channel gives you good lossy quality out of AAC.',
   },
   {
-	name: 'audioLanguage',
-	type: 'string',
-	defaultValue: 'eng',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'Desired audio language.\\nMust follow ISO-639-2 3 letter format. '
-	  + 'https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.\\nExample: \\neng',
+    name: 'audioChannels',
+    type: 'number',
+    defaultValue: '6',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'Maximum number of audio channels, anything more than this will be reduced.'
+      + '\\nExample: 2.1 = 3, 5.1 = 6, 7.1 = 8\\n',
   },
   {
-	name: 're_encode10bit',
-	type: 'boolean',
-	defaultValue: 'false',
-	inputUI: {
-	  type: 'dropdown',
-	   options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Re-encode 8bit color depth to 10bit.',
+    name: 'audioLanguage',
+    type: 'string',
+    defaultValue: 'eng',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'Desired audio language.\\nMust follow ISO-639-2 3 letter format. '
+      + 'https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.\\nExample: \\neng',
   },
   {
-	name: 'subLanguage',
-	type: 'string',
-	defaultValue: '',
-	inputUI: {
-	  type: 'text',
-	},
-	tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
-	  + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
-	  + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
-	  + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
+    name: 'subLanguage',
+    type: 'string',
+    defaultValue: '',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
+      + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
+      + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
+      + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
   {
-	name: 'subExtract',
-	type: 'boolean',
-	defaultValue: false,
-	inputUI: {
-	  type: 'dropdown',
-	  options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Extract defined language subtitle stream(s) from file.',
+    name: 'subExtract',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Extract defined language subtitle stream(s) from file.',
   },
   {
-	name: 'subRemoveCommentary',
-	type: 'boolean',
-	defaultValue: false,
-	inputUI: {
-	  type: 'dropdown',
-	  options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Remove commentary streams from file.',
+    name: 'subOverwrite',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Overwrite existing subtitle files on disk if they exist.',
   },
   {
-	name: 'subRemoveUnwanted',
-	type: 'boolean',
-	defaultValue: false,
-	inputUI: {
-	  type: 'dropdown',
-	  options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Remove unwanted language subtitle streams from file. Defined language(s) will not be removed.',
+    name: 'subRmExtraLang',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Remove unwanted language subtitle streams from file. Defined language(s) will not be removed.',
   },
   {
-	name: 'subRemoveAll',
-	type: 'boolean',
-	defaultValue: false,
-	inputUI: {
-	  type: 'dropdown',
-	  options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Remove all subtitle streams from file.',
+    name: 'subRmCommentary',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Remove commentary streams from file.',
   },
   {
-	name: 'subOverwrite',
-	type: 'boolean',
-	defaultValue: false,
-	inputUI: {
-	  type: 'dropdown',
-	  options: [
-		'false',
-		'true',
-	  ],
-	},
-	tooltip: 'Overwrite existing subtitle files on disk if they exist.',
+    name: 'subRmCC_SDH',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Remove CC/SDH streams from file.',
   },
-]
+  {
+    name: 'subRmAll',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Remove all subtitle streams from file.',
+  },
+  ],
 });
 
 function findMediaInfoItem(file, index) {
@@ -215,9 +228,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   };
 
   // Check if all inputs have been configured. If they haven't then exit plugin.
-  if ((inputs.re_encode10bit === '') || (inputs.minBitrate4K === '') || (inputs.minBitrate1080p === '') ||
-	  (inputs.minBitrate720p === '') || (inputs.minBitrate480p === '') || (inputs.audioBitrate === '') ||
-	  (inputs.audioChannels === '') || (inputs.audioLanguage === '')) {
+  if ((inputs.re_encode10bit === '') || (inputs.minBitrate4K === '') || (inputs.minBitrate1080p === '')
+	  || (inputs.minBitrate720p === '') || (inputs.minBitrate480p === '') || (inputs.audioBitrate === '')
+	  || (inputs.audioChannels === '') || (inputs.audioLanguage === '')) {
 	response.infoLog += 'Please configure options. Skipping this plugin. \n';
 	response.processFile = false;
 	return response;
@@ -257,11 +270,12 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   let cmdExtract = '';
   let processLanguage = inputs.subLanguage.toLowerCase().split(',');
   let bolExtract = inputs.subExtract;
-  let bolRemoveCommentary = inputs.subRemoveCommentary;
-  let bolRemoveUnwanted = inputs.subRemoveUnwanted;
-  let bolRemoveAll = inputs.subRemoveAll;
+  let bolRemoveUnwanted = inputs.subRmExtraLang;
+  let bolRemoveCommentary = inputs.subRmCommentary;
+  let bolRemoveCC_SDH = inputs.subRmCC_SDH;
+  let bolRemoveAll = inputs.subRmAll;
   let bolOverwright = inputs.subOverwrite;
-
+  
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   const proc = require('child_process');
@@ -351,10 +365,10 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   let bolCopySubsConvert = false;
   let bolExtractAll = false;
   if (bolExtract && processLanguage === 'all') {
-	bolExtractAll = true;
+    bolExtractAll = true;
   }
   if (bolRemoveAll) {
-	bolRemoveUnwanted = false;
+    bolRemoveUnwanted = false;
   }
   const subsArr = file.ffProbeData.streams.filter((row) => row.codec_type.toLowerCase() === ('subtitle'));
 
