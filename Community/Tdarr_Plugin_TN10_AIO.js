@@ -9,7 +9,6 @@
 // Created by tehNiemer with thanks to JarBinks and drpeppershaker for the plugins
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile and Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // which served as the building blocks.
-// Date: 09/20/2021
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
