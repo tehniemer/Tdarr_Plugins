@@ -811,8 +811,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  strFFcmd += ` -y <io> -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
+  strFFcmd += ' -y <io>';
   strFFcmd += cmdExtract;
+  strFFcmd += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
     strFFcmd += ' -c:v:0 hevc_vaapi ';
