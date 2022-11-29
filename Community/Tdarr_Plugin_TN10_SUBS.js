@@ -23,6 +23,7 @@ const details = () => ({
     },
     tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
       + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
+	  + '\\nLeave blank and enable "rm_all" to remove all subtitles from file.'
       + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
       + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
@@ -125,6 +126,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     infoLog: '',
   };
 
+  // Check if all inputs have been configured. If they haven't then exit plugin.
+  if (inputs.language === '' && (inputs.extract == true || inputs.rm_extra_lang == true
+  || inputs.rm_commentary == true || inputs.rm_cc_sdh == true)) {
+    response.infoLog += 'Please configure language. Skipping this plugin. \n';
+    response.processFile = false;
+    return response;
+  }
+  
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     // eslint-disable-next-line no-console
