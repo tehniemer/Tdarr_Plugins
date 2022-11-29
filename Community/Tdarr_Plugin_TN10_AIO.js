@@ -15,7 +15,7 @@ const details = () => ({
   Name: 'tehNiemer - AIO: MKV, h265, AAC, and subtitles',
   Type: 'Video',
   Operation: 'Transcode',
-  Description: 'Re-encodes files to h265 and AAC with user defined bitrate parameters. Removes all but one video '
+  Description: '(Re)encodes files to h265 and AAC with user defined bitrate parameters. Removes all but one video '
     + 'and audio stream. Extract/copy/remove embedded text and image based subtitles '
     + 'S_TEXT/WEBVTT subtitles will be removed as ffmpeg does not handle them properly.\n\n ',
   Version: '1.00',
@@ -107,6 +107,7 @@ const details = () => ({
     },
     tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
       + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
+	  + '\\nLeave blank and enable "rm_all" to remove all subtitles from file.'
       + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
       + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
@@ -230,10 +231,11 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   };
 
   // Check if all inputs have been configured. If they haven't then exit plugin.
-  if ((inputs.re_encode10bit === '') || (inputs.minBitrate4K === '') || (inputs.minBitrate1080p === '')
-    || (inputs.minBitrate720p === '') || (inputs.minBitrate480p === '') || (inputs.audioBitrate === '')
-    || (inputs.audioChannels === '') || (inputs.audioLanguage === '')) {
-    response.infoLog += 'Please configure options. Skipping this plugin. \n';
+  if (inputs.minBitrate4K <= 4000 || inputs.minBitrate1080p <= 1000 || inputs.minBitrate720p <= 450
+    || inputs.minBitrate480p <= 150 || inputs.audioBitrate <= 15 || inputs.audioChannels <= 0
+    || inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract == true
+    || inputs.subRmExtraLang == true || inputs.subRmCommentary == true || inputs.subRmCC_SDH == true))) {
+    response.infoLog += 'Please configure all options with reasonable values. Skipping this plugin. \n';
     response.processFile = false;
     return response;
   }
