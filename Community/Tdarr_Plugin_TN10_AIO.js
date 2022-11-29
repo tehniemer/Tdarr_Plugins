@@ -625,7 +625,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   if (audioIdx === -1) {
     if (audioIdxOther !== -1) {
-      response.infoLog += 'Unable to determine audio stream language, proceeding anyways !! \n'-;
+      response.infoLog += 'Unable to determine audio stream language, proceeding anyways !! \n';
       audioIdx = audioIdxOther;
     } else {
       response.processFile = false;
