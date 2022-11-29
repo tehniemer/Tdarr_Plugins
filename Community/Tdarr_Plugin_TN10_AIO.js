@@ -198,7 +198,7 @@ function findMediaInfoItem(file, index) {
   for (let i = 0; i < file.mediaInfo.track.length; i += 1) {
     if (file.mediaInfo.track[i].StreamOrder) {
       currMIOrder = file.mediaInfo.track[i].StreamOrder;
-    } else if (strStreamType === 'text' || 'subtitle') {
+    } else if (strStreamType === ('subtitle' || 'text')) {
       currMIOrder = file.mediaInfo.track[i].ID - 1;
     } else {
       currMIOrder = -1;
@@ -410,7 +410,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         response.infoLog += `Video stream ${i}: ${Math.round(file.meta.Duration / 60)}min, `
           + `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
         response.infoLog += `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, `
-		  + `${Math.round(streamBR / 1000)}kbps \n`;
+          + `${Math.round(streamBR / 1000)}kbps \n`;
 
         if (videoIdxFirst === -1) {
           videoIdxFirst = i;
@@ -497,7 +497,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     // Looking For Subtitles
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (!bolDoSubs && (strStreamType === 'subtitle' || 'text')) {
+    if (!bolDoSubs && (strStreamType === ('subtitle' || 'text'))) {
       bolDoSubs = true;
       response.infoLog += 'Subtitles Found \n';
     }
