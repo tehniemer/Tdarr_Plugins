@@ -133,7 +133,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     response.processFile = false;
     return response;
   }
-  
+
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     // eslint-disable-next-line no-console
