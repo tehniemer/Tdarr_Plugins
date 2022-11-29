@@ -23,7 +23,7 @@ const details = () => ({
   Inputs: [{
     name: 'minBitrate4K',
     type: 'number',
-    defaultValue: '20000',
+    defaultValue: 20000,
     inputUI: {
       type: 'text',
     },
@@ -32,7 +32,7 @@ const details = () => ({
   {
     name: 'minBitrate1080p',
     type: 'number',
-    defaultValue: '5000',
+    defaultValue: 5000,
     inputUI: {
       type: 'text',
     },
@@ -41,7 +41,7 @@ const details = () => ({
   {
     name: 'minBitrate720p',
     type: 'number',
-    defaultValue: '2200',
+    defaultValue: 2200,
     inputUI: {
       type: 'text',
     },
@@ -50,7 +50,7 @@ const details = () => ({
   {
     name: 'minBitrate480p',
     type: 'number',
-    defaultValue: '750',
+    defaultValue: 750,
     inputUI: {
       type: 'text',
     },
@@ -72,7 +72,7 @@ const details = () => ({
   {
     name: 'audioBitrate',
     type: 'number',
-    defaultValue: '64',
+    defaultValue: 64,
     inputUI: {
       type: 'text',
     },
@@ -81,7 +81,7 @@ const details = () => ({
   {
     name: 'audioChannels',
     type: 'number',
-    defaultValue: '6',
+    defaultValue: 6,
     inputUI: {
       type: 'text',
     },
@@ -91,7 +91,7 @@ const details = () => ({
   {
     name: 'audioLanguage',
     type: 'string',
-    defaultValue: 'eng',
+    defaultValue: '',
     inputUI: {
       type: 'text',
     },
