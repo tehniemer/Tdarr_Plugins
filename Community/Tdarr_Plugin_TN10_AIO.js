@@ -10,7 +10,7 @@
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile and Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - AIO: MKV, h265, AAC, and subtitles',
   Type: 'Video',
@@ -789,6 +789,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         }
         response.infoLog += '\n';
       }
+    }
+    if (bolRemoveAll) {
+      response.infoLog += 'Removing all subtitles!\n';
     }
   }
 
