@@ -107,7 +107,7 @@ const details = () => ({
     },
     tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
       + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
-	  + '\\nLeave blank and enable "rm_all" to remove all subtitles from file.'
+      + '\\nLeave blank and enable "rm_all" to remove all subtitles from file.'
       + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
       + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
@@ -233,8 +233,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // Check if all inputs have been configured. If they haven't then exit plugin.
   if (inputs.minBitrate4K <= 4000 || inputs.minBitrate1080p <= 1000 || inputs.minBitrate720p <= 450
     || inputs.minBitrate480p <= 150 || inputs.audioBitrate <= 15 || inputs.audioChannels <= 0
-    || inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract == true
-    || inputs.subRmExtraLang == true || inputs.subRmCommentary == true || inputs.subRmCC_SDH == true))) {
+    || inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract === true
+    || inputs.subRmExtraLang === true || inputs.subRmCommentary === true || inputs.subRmCC_SDH === true))) {
     response.infoLog += 'Please configure all options with reasonable values. Skipping this plugin. \n';
     response.processFile = false;
     return response;
