@@ -291,10 +291,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   }
 
   // If the file has already been processed we dont need to do more
-  if (file.container === 'mkv'&& (
-      file.mediaInfo.track[0].extra !== undefined
-      && file.mediaInfo.track[0].extra.TNPROCESSED !== undefined
-      && file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
+  if (file.container === 'mkv' && (file.mediaInfo.track[0].extra !== undefined
+    && file.mediaInfo.track[0].extra.TNPROCESSED !== undefined
+    && file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
     response.processFile = false;
     response.infoLog += 'File already Processed! \n';
     return response;
@@ -304,10 +303,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   if (file.container === 'mkv') {
     let datStats = Date.parse(new Date(70, 1).toISOString());
     if (
-      file.ffProbeData.streams[0].tags !== undefined &&
-      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
+      file.ffProbeData.streams[0].tags !== undefined
+      && file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
     ) {
-
       datStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
     }
 
@@ -344,7 +342,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // Video
   let bolScaleVideo = false;
   let bolTranscodeVideo = false;
-  let bolChangeFrameRateVideo = false;
+  const bolChangeFrameRateVideo = false;
   let optimalVideoBitrate = 0;
   let minimumVideoBitrate = 0;
   let targetCodecCompression = 0;
@@ -389,9 +387,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
     strStreamType = file.ffProbeData.streams[i].codec_type.toLowerCase();
 
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Looking For Video
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (strStreamType === 'video') {
       // First we need to check if it is included in the MediaInfo struture, it might not be (mjpeg??, others??)
@@ -411,8 +409,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
         response.infoLog += `Video stream ${i}: ${Math.round(file.meta.Duration / 60)}min, `
           + `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
-        response.infoLog +=
-          `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, ${Math.round(streamBR / 1000)}kbps \n`;
+        response.infoLog += `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, `
+		  + `${Math.round(streamBR / 1000)}kbps \n`;
 
         if (videoIdxFirst === -1) {
           videoIdxFirst = i;
@@ -437,9 +435,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       }
     }
 
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Looking For Audio
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (strStreamType === 'audio') {
       audioChannels = file.ffProbeData.streams[i].channels * 1;
@@ -460,7 +458,6 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         if (audioIdx === -1) {
           response.infoLog += '- First Audio Stream ';
           audioIdx = i;
-
         } else {
           audioIdxChannels = file.ffProbeData.streams[audioIdx].channels * 1;
           audioIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].BitRate;
@@ -480,7 +477,6 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         if (audioIdxOther === -1) {
           response.infoLog += '- Undesired Audio Stream ';
           audioIdxOther = i;
-
         } else {
           audioIdxChannels = file.ffProbeData.streams[audioIdxOther].channels * 1;
           audioIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, audioIdxOther)].BitRate;
@@ -497,15 +493,15 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += ' \n';
     }
 
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Looking For Subtitles
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (!bolDoSubs && (strStreamType === 'subtitle' || 'text')) {
       bolDoSubs = true;
       response.infoLog += 'Subtitles Found \n';
     }
-    /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -525,7 +521,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   let videoHeight = file.ffProbeData.streams[videoIdx].height * 1;
   let videoWidth = file.ffProbeData.streams[videoIdx].width * 1;
-  let videoFPS = file.mediaInfo.track[MILoc].FrameRate * 1;
+  const videoFPS = file.mediaInfo.track[MILoc].FrameRate * 1;
   let videoBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
   if (isNaN(videoBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
@@ -545,16 +541,16 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   if (videoHeight > maxVideoHeight) {
     bolScaleVideo = true;
     videoNewWidth = Math.round((maxVideoHeight / videoHeight) * videoWidth);
-    response.infoLog +=
-      `Video resolution, ${videoWidth} x ${videoHeight}, need to convert to ${videoNewWidth} x ${maxVideoHeight} \n`;
+    response.infoLog
+      += `Video resolution, ${videoWidth} x ${videoHeight}, need to convert to ${videoNewWidth} x ${maxVideoHeight} \n`;
     videoHeight = maxVideoHeight;
     videoWidth = videoNewWidth;
   }
 
   // Check if it is already hvec, if not then we must transcode
   if (file.ffProbeData.streams[videoIdx].codec_name !== targetVideoCodec) {
-    response.infoLog +=
-      `Source codex is ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
+    response.infoLog
+      += `Source codex is ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
     response.infoLog += `, need to convert to ${targetVideoCodec}${(bolUse10bit) ? '(10)' : ''} \n`;
     if (
       file.ffProbeData.streams[videoIdx].codec_name === 'mpeg4'
@@ -569,23 +565,23 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // We need to set the minimum bitrate and calculate the target codec compression
   if ((videoHeight * videoWidth) > minVideoPixels4K) {
     minimumVideoBitrate = minBitrate4K;
-    response.infoLog +=
-      `Video stream determined to be 4K. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog
+      += `Video stream determined to be 4K. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate4K / (3840 * 2160 * targetFrameRate)) + qualityAdder);
   } else if ((videoHeight * videoWidth) > minVideoPixels1080p) {
     minimumVideoBitrate = minBitrate1080p;
-    response.infoLog +=
-      `Video stream determined to be 1080p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog
+      += `Video stream determined to be 1080p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate1080p / (1920 * 1080 * targetFrameRate)) + qualityAdder);
   } else if ((videoHeight * videoWidth) > minVideoPixels720p) {
     minimumVideoBitrate = minBitrate720p;
-    response.infoLog +=
-      `Video stream determined to be 720p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog
+      += `Video stream determined to be 720p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate720p / (1280 * 720 * targetFrameRate)) + qualityAdder);
   } else {
     minimumVideoBitrate = minBitrate480p;
-    response.infoLog +=
-      `Video stream determined to be 480p or lower. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog
+      += `Video stream determined to be 480p or lower. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate480p / (640 * 480 * targetFrameRate)) + qualityAdder);
   }
 
@@ -616,13 +612,12 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     optimalVideoBitrate = minimumVideoBitrate;
   } else {
     // Source bitrate has enough meat for a decent transcode
-    response.infoLog +=
-      `Source bitrate: ${Math.round(videoBR / 1000)}kbps, is high enough to transcode to optimal bitrate. \n`;
+    response.infoLog
+      += `Source bitrate: ${Math.round(videoBR / 1000)}kbps, is high enough to transcode to optimal bitrate. \n`;
   }
 
-  response.infoLog +=
-    `Post-process video stream will be: ${videoWidth} x ${videoHeight} x ${Math.round(videoFPS)}fps, `
-    + `${Math.round(optimalVideoBitrate / 1000)}kbps \n`;
+  response.infoLog += `Post-process video stream will be: ${videoWidth} x ${videoHeight} x `
+    + `${Math.round(videoFPS)}fps, ${Math.round(optimalVideoBitrate / 1000)}kbps \n`;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Audio Decision section
@@ -630,7 +625,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   if (audioIdx === -1) {
     if (audioIdxOther !== -1) {
-      response.infoLog += `Unable to determine audio stream language, proceeding anyways !! \n`;
+      response.infoLog += 'Unable to determine audio stream language, proceeding anyways !! \n'-;
       audioIdx = audioIdxOther;
     } else {
       response.processFile = false;
@@ -870,7 +865,6 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
     // Used when video is above our target
     strFFcmd += ` -b:v ${optimalVideoBitrate} `;
-
   } else {
     strFFcmd += ' -c:v:0 copy ';
   }
