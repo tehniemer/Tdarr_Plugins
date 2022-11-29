@@ -10,7 +10,7 @@
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile and Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
+  id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - AIO: MKV, h265, AAC, and subtitles',
   Type: 'Video',
