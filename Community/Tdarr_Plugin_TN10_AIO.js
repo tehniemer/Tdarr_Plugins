@@ -222,7 +222,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   const response = {
     processFile: true,
-	error: false,
+    error: false,
     preset: '',
     container: '.mkv',
     handBrakeMode: false,
