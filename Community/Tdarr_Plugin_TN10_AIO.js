@@ -12,11 +12,11 @@
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
-  Name: 'tehNiemer - AIO: MKV, h265, AAC, and subtitles',
+  Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
-  Description: '(Re)encodes files to h265 and AAC with user defined bitrate parameters. Removes all but one video '
-    + 'and audio stream. Extract/copy/remove embedded text and image based subtitles '
+  Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. '
+    + 'Removes all but one video and audio stream. Extract/copy/remove embedded text and image based subtitles '
     + 'S_TEXT/WEBVTT subtitles will be removed as ffmpeg does not handle them properly.\n\n ',
   Version: '1.00',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
@@ -221,7 +221,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   inputs = lib.loadDefaultValues(inputs, details);
 
   const response = {
-    processFile: false,
+    processFile: true,
+	error: false,
     preset: '',
     container: '.mkv',
     handBrakeMode: false,
@@ -235,8 +236,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     || inputs.minBitrate480p <= 150 || inputs.audioBitrate <= 15 || inputs.audioChannels <= 0
     || inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract === true
     || inputs.subRmExtraLang === true || inputs.subRmCommentary === true || inputs.subRmCC_SDH === true))) {
-    response.infoLog += 'Please configure all options with reasonable values. Skipping this plugin. \n';
     response.processFile = false;
+    response.error = true;
+    response.infoLog += 'Please configure all options with reasonable values. Skipping this plugin. \n';
     return response;
   }
 
@@ -288,6 +290,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     response.processFile = false;
+    response.error = true;
     response.infoLog += 'File is not a video. Exiting \n';
     return response;
   }
@@ -512,6 +515,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   if (videoIdx === -1) {
     response.processFile = false;
+    response.error = true;
     response.infoLog += 'No Video Track !! \n';
     return response;
   }
@@ -631,6 +635,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       audioIdx = audioIdxOther;
     } else {
       response.processFile = false;
+      response.error = true;
       response.infoLog += 'No Audio Track !! \n';
       return response;
     }
@@ -906,7 +911,6 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   strFFcmd += strTranscodeFileOptions;
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   response.preset += strFFcmd;
-  response.processFile = true;
   response.infoLog += 'File needs work. Transcoding. \n';
   return response;
 };
