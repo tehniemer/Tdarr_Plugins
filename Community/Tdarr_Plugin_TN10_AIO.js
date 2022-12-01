@@ -3,13 +3,13 @@
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
 /* eslint no-await-in-loop: 0 */
-/* eslint no-restricted-globals: 0 */
+
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // tdarrSkipTest
 
-// Created by tehNiemer with thanks to JarBinks and drpeppershaker for the plugins
-// Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile and Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
-// which served as the building blocks.
+// Created by tehNiemer with thanks to JarBinks, drpeppershaker, and supersnellehenk for the plugins
+// Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
+// and Tdarr_Plugin_henk_Keep_Native_Lang_Plus_Eng which served as the building blocks.
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
@@ -88,7 +88,7 @@ const details = () => ({
       type: 'text',
     },
     tooltip: 'Maximum number of audio channels, anything more than this will be reduced.' +
-      '\\nExample: 2.1 = 3, 5.1 = 6, 7.1 = 8\\n',
+      '\\nExample: \\n2.1 = 3, 5.1 = 6, 7.1 = 8',
   },
   {
     name: 'audioLanguage',
@@ -98,7 +98,7 @@ const details = () => ({
       type: 'text',
     },
     tooltip: 'Specify language tag(s) here for the audio tracks you would like to keep.' +
-      '\\nEnter "all" without quotes to keep all audio tracks.' +
+      'Enter "all" without quotes to keep all audio tracks.' +
       '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.' +
       '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
@@ -114,6 +114,7 @@ const details = () => ({
       ],
     },
     tooltip: 'Keep original release language in addition to desired audio language, if it exists. ' +
+      'Filename must contain IMDb ID. \\nExample: \\ntt1234567' +
       '\\nTMDB api (v3) required for this option',
   },
   {
@@ -123,7 +124,7 @@ const details = () => ({
     inputUI: {
       type: 'text',
     },
-    tooltip: 'TMDB api (v3) to querey original release language.\\nhttps://www.themoviedb.org/',
+    tooltip: 'TMDB api (v3) to querey original release language. https://www.themoviedb.org/',
   },
   {
     name: 'subLanguage',
@@ -132,9 +133,9 @@ const details = () => ({
     inputUI: {
       type: 'text',
     },
-    tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.' +
-      '\\nEnter "all" without quotes to copy/extract all subtitle tracks.' +
-      '\\nLeave blank and enable "rm_all" to remove all subtitles from file.' +
+    tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract. ' +
+      'Enter "all" without quotes to copy/extract all subtitle tracks. ' +
+      'Leave blank and enable "rm_all" to remove all subtitles from file.' +
       '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.' +
       '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
@@ -472,6 +473,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         const streamFPS = file.mediaInfo.track[MILoc].FrameRate * 1;
         let streamBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
+		// eslint-disable-next-line no-restricted-globals
         if (isNaN(streamBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
           streamBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
         }
@@ -492,6 +494,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           const curStreamWidth = file.ffProbeData.streams[videoIdx].width * 1;
           let curStreamBR = file.mediaInfo.track[MILocC].BitRate * 1;
 
+          // eslint-disable-next-line no-restricted-globals
           if (isNaN(curStreamBR) && file.mediaInfo.track[MILocC].extra !== undefined) {
             curStreamBR = file.mediaInfo.track[MILocC].extra.FromStats_BitRate * 1;
           }
@@ -512,6 +515,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       audioChannels = file.ffProbeData.streams[i].channels * 1;
       audioBitrate = file.mediaInfo.track[findMediaInfoItem(file, i)].BitRate * 1;
 
+      // eslint-disable-next-line no-restricted-globals
       if (isNaN(audioBitrate) && file.mediaInfo.track[findMediaInfoItem(file, i)].extra !== undefined) {
         audioBitrate = file.mediaInfo.track[findMediaInfoItem(file, i)].extra.FromStats_BitRate * 1;
       }
@@ -595,6 +599,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const videoFPS = file.mediaInfo.track[MILoc].FrameRate * 1;
   let videoBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
+  // eslint-disable-next-line no-restricted-globals
   if (isNaN(videoBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
     videoBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
   }
@@ -677,6 +682,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'Transcoding with a codec change using source bitrate. \n';
       optimalVideoBitrate = videoBR;
     }
+  // eslint-disable-next-line no-restricted-globals
   } else if (isNaN(videoBR)) {
     // Cannot determine source bitrate
     response.infoLog += 'Cannot determine source bitrate, throwing in towel and using minimum acceptable bitrate. \n';
@@ -710,6 +716,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   let audioBR = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].BitRate * 1;
 
+  // eslint-disable-next-line no-restricted-globals
   if (isNaN(audioBR) && file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].extra !== undefined) {
     audioBR = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].extra.FromStats_BitRate * 1;
   }
