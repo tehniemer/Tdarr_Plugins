@@ -473,7 +473,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         const streamFPS = file.mediaInfo.track[MILoc].FrameRate * 1;
         let streamBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
-		// eslint-disable-next-line no-restricted-globals
+        // eslint-disable-next-line no-restricted-globals
         if (isNaN(streamBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
           streamBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
         }
