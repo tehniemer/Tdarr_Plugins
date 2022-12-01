@@ -216,7 +216,8 @@ const details = () => ({
       ],
     },
     tooltip: 'Remove all subtitle streams from file.',
-  },]
+  },
+  ],
 });
 
 function findMediaInfoItem(file, index) {
@@ -438,7 +439,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
         originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
       } else {
-          response.infoLog += 'No IMDb result found. \n';
+        response.infoLog += 'No IMDb result found. \n';
       }
     } else {
       response.infoLog += 'IMDb ID not found. \n';
