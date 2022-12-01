@@ -445,7 +445,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         targetAudioLanguage.push(languages.alpha2ToAlpha3B(originalLanguage));
         response.infoLog += `Original language: ${originalLanguage}, ` +
           `Using code: ${languages.alpha2ToAlpha3B(originalLanguage)}\n`;
-
       } else {
         response.infoLog += 'No IMDb result found. \n';
       }
