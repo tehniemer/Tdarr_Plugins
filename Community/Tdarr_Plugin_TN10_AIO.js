@@ -2,7 +2,8 @@
 // allow isNaN
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
-/* eslint-disable no-await-in-loop */
+/* eslint no-await-in-loop: 0 */
+/* eslint no-restricted-globals: 0 */
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // tdarrSkipTest
 
