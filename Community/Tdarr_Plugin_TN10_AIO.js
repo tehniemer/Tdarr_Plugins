@@ -249,6 +249,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   inputs = lib.loadDefaultValues(inputs, details);
   // eslint-disable-next-line import/no-unresolved
   const axios = require('axios').default;
+  // eslint-disable-next-line import/no-unresolved
+  const languages = require('@cospired/i18n-iso-languages');
 
   const response = {
     processFile: true,
@@ -297,7 +299,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  const targetAudioLanguage = inputs.audioLanguage.toLowerCase().split(',');
+  let targetAudioLanguage = [];
+  targetAudioLanguage = targetAudioLanguage.concat(inputs.audioLanguage);
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
   const bolKeepOriginalLanguage = inputs.keepOrigLang;
@@ -432,12 +435,17 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Poll TMDB for information.
       const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
-          `${tmdbAPI}&language=en-US&external_source=imdb_id`)
+        `${tmdbAPI}&language=en-US&external_source=imdb_id`)
         .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
 
       if (result) {
         // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
         originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
+        // Change two letter to three letter code.
+        targetAudioLanguage.push(languages.alpha2ToAlpha3B(originalLanguage));
+        response.infoLog += `Original language: ${originalLanguage}, ` +
+          `Using code: ${languages.alpha2ToAlpha3B(originalLanguage)}\n`;
+
       } else {
         response.infoLog += 'No IMDb result found. \n';
       }
