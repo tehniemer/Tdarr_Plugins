@@ -1,24 +1,27 @@
 // jshint esversion: 6
 // allow isNaN
+/* eslint operator-linebreak: ["error", "after"] */
+/* eslint eqeqeq: 1 */
+/* eslint-disable no-await-in-loop */
 /* eslint no-restricted-globals: 0 */
 /* eslint no-template-curly-in-string: 0 */
-/* eslint global-require: 0 */
-/* eslint eqeqeq: 1 */
+module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // tdarrSkipTest
 
 // Created by tehNiemer with thanks to JarBinks and drpeppershaker for the plugins
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile and Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
   Stage: 'Pre-processing',
-  Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
+  Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
-  Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. '
-    + 'Removes all but one video and audio stream. Extract/copy/remove embedded text and image based subtitles '
-    + 'S_TEXT/WEBVTT subtitles will be removed as ffmpeg does not handle them properly.\n\n ',
-  Version: '1.00',
+  Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. ' +
+    'Removes all but one video stream. Audio language(s) are user defined and the option to keep the original ' +
+    'as-filmed audio language is available. At least one audio stream wil be kept. Extract/copy/remove embedded ' +
+    'text and image based subtitles. S_TEXT/WEBVTT subtitles will be removed.\n\n ',
+  Version: '2.00',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
   Inputs: [{
     name: 'minBitrate4K',
@@ -85,8 +88,8 @@ const details = () => ({
     inputUI: {
       type: 'text',
     },
-    tooltip: 'Maximum number of audio channels, anything more than this will be reduced.'
-      + '\\nExample: 2.1 = 3, 5.1 = 6, 7.1 = 8\\n',
+    tooltip: 'Maximum number of audio channels, anything more than this will be reduced.' +
+      '\\nExample: 2.1 = 3, 5.1 = 6, 7.1 = 8\\n',
   },
   {
     name: 'audioLanguage',
@@ -95,8 +98,33 @@ const details = () => ({
     inputUI: {
       type: 'text',
     },
-    tooltip: 'Desired audio language.\\nMust follow ISO-639-2 3 letter format. '
-      + 'https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.\\nExample: \\neng',
+    tooltip: 'Specify language tag(s) here for the audio tracks you would like to keep.' +
+      '\\nEnter "all" without quotes to keep all audio tracks.' +
+      '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.' +
+      '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
+  },
+  {
+    name: 'keepOrigLang',
+    type: 'boolean',
+    defaultValue: false,
+    inputUI: {
+      type: 'dropdown',
+      options: [
+        'false',
+        'true',
+      ],
+    },
+    tooltip: 'Keep original release language in addition to desired audio language, if it exists. ' +
+      '\\nTMDB api (v3) required for this option',
+  },
+  {
+    name: 'apiKey',
+    type: 'string',
+    defaultValue: '',
+    inputUI: {
+      type: 'text',
+    },
+    tooltip: 'TMDB api (v3) to querey original release language.\\nhttps://www.themoviedb.org/',
   },
   {
     name: 'subLanguage',
@@ -105,11 +133,11 @@ const details = () => ({
     inputUI: {
       type: 'text',
     },
-    tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.'
-      + '\\nEnter "all" without quotes to copy/extract all subtitle tracks.'
-      + '\\nLeave blank and enable "rm_all" to remove all subtitles from file.'
-      + '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.'
-      + '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
+    tooltip: 'Specify language tag(s) here for the subtitle tracks you would like to keep/extract.' +
+      '\\nEnter "all" without quotes to copy/extract all subtitle tracks.' +
+      '\\nLeave blank and enable "rm_all" to remove all subtitles from file.' +
+      '\\nMust follow ISO-639-2 3 letter format. https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.' +
+      '\\nExample: \\neng\\nExample: \\neng,jpn,fre',
   },
   {
     name: 'subExtract',
@@ -161,7 +189,7 @@ const details = () => ({
         'true',
       ],
     },
-    tooltip: 'Remove commentary streams from file.',
+    tooltip: 'Remove commentary subtitle streams from file.',
   },
   {
     name: 'subRmCC_SDH',
@@ -174,7 +202,7 @@ const details = () => ({
         'true',
       ],
     },
-    tooltip: 'Remove CC/SDH streams from file.',
+    tooltip: 'Remove CC/SDH subtitle streams from file.',
   },
   {
     name: 'subRmAll',
@@ -188,8 +216,7 @@ const details = () => ({
       ],
     },
     tooltip: 'Remove all subtitle streams from file.',
-  },
-  ],
+  }, ],
 });
 
 function findMediaInfoItem(file, index) {
@@ -219,6 +246,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   const lib = require('../methods/lib')();
   // eslint-disable-next-line no-unused-vars,no-param-reassign
   inputs = lib.loadDefaultValues(inputs, details);
+  // eslint-disable-next-line import/no-unresolved
+  const axios = require('axios').default;
 
   const response = {
     processFile: true,
@@ -232,10 +261,10 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   };
 
   // Check if all inputs have been configured. If they haven't then exit plugin.
-  if (inputs.minBitrate4K <= 4000 || inputs.minBitrate1080p <= 1000 || inputs.minBitrate720p <= 450
-    || inputs.minBitrate480p <= 150 || inputs.audioBitrate <= 15 || inputs.audioChannels <= 0
-    || inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract === true
-    || inputs.subRmExtraLang === true || inputs.subRmCommentary === true || inputs.subRmCC_SDH === true))) {
+  if (inputs.minBitrate4K <= 4000 || inputs.minBitrate1080p <= 1000 || inputs.minBitrate720p <= 450 ||
+    inputs.minBitrate480p <= 150 || inputs.audioBitrate <= 15 || inputs.audioChannels <= 0 ||
+    inputs.audioLanguage === '' || (inputs.subLanguage === '' && (inputs.subExtract || inputs.subRmExtraLang ||
+      inputs.subRmCommentary || inputs.subRmCC_SDH)) || (inputs.keepOrigLang && inputs.tmdbAPI === '')) {
     response.processFile = false;
     response.error = true;
     response.infoLog += 'Please configure all options with reasonable values. Skipping this plugin. \n';
@@ -251,7 +280,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   // Video
   const targetVideoCodec = 'hevc'; // Desired Video Codec, if you change this it will might require code changes
-  let bolUse10bit = inputs.re_encode10bit; // Encode 8 bit to 10 bit
+  let bolUse10bit = inputs.re_encode10bit;
   const targetFrameRate = 24; // Any frame rate greater than this will be adjusted
   const maxVideoHeight = 2160; // Any thing over this size, I.E. 4K, will be reduced to this
   const qualityAdder = 0.05; // This is a multiplier of codec compression to increase target quality
@@ -267,14 +296,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  const targetAudioLanguage = inputs.audioLanguage; // Desired Audio Language
-  const targetAudioBitratePerChannel = inputs.audioBitrate * 1000; // 64K per channel gives you good lossy quality
-  const targetAudioChannels = inputs.audioChannels; // Any thing above this number of channels will be reduced to it
+  const targetAudioLanguage = inputs.audioLanguage.toLowerCase().split(',');
+  const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
+  const targetAudioChannels = inputs.audioChannels;
+  const bolKeepOriginalLanguage = inputs.keepOrigLang;
+  const tmdbAPI = inputs.apiKey;
 
   // Subtitle
-  let cmdRemove = '';
-  let cmdExtract = '';
-  const processLanguage = inputs.subLanguage.toLowerCase().split(',');
+  const targetSubLanguage = inputs.subLanguage.toLowerCase().split(',');
   const bolExtract = inputs.subExtract;
   let bolRemoveUnwanted = inputs.subRmExtraLang;
   const bolRemoveCommentary = inputs.subRmCommentary;
@@ -296,9 +325,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   }
 
   // If the file has already been processed we dont need to do more
-  if (file.container === 'mkv' && (file.mediaInfo.track[0].extra !== undefined
-    && file.mediaInfo.track[0].extra.TNPROCESSED !== undefined
-    && file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
+  if (file.container === 'mkv' && (file.mediaInfo.track[0].extra !== undefined &&
+      file.mediaInfo.track[0].extra.TNPROCESSED !== undefined &&
+      file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
     response.processFile = false;
     response.infoLog += 'File already Processed! \n';
     return response;
@@ -308,8 +337,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   if (file.container === 'mkv') {
     let datStats = Date.parse(new Date(70, 1).toISOString());
     if (
-      file.ffProbeData.streams[0].tags !== undefined
-      && file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
+      file.ffProbeData.streams[0].tags !== undefined &&
+      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
     ) {
       datStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
     }
@@ -364,13 +393,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   let audioBitrate = 0;
   let audioIdxChannels = 0;
   let audioIdxBitrate = 0;
-  let streamLanguage = '???';
 
   // Subtitle
+  let cmdRemove = '';
+  let cmdExtract = '';
   let bolDoSubs = false;
   let bolConvertSubs = false;
   let bolExtractAll = false;
-  if (bolExtract && processLanguage === 'all') {
+  if (bolExtract && targetSubLanguage === 'all') {
     bolExtractAll = true;
   }
   if (bolRemoveAll) {
@@ -387,6 +417,34 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   let audioIdxOther = -1;
   let strStreamType = '';
   let MILoc = -1;
+
+  // Determine original language if possible.
+  if (bolKeepOriginalLanguage) {
+    let originalLanguage = '';
+    let imdbID = '';
+    const idRegex = /(tt\d{7,8})/;
+    const idMatch = currentFileName.match(idRegex);
+    // eslint-disable-next-line prefer-destructuring
+    if (idMatch) imdbID = idMatch[1];
+    if (imdbID.length === (9 || 10)) {
+      response.infoLog += `IMDb ID: ${imdbID} \n`;
+	  
+	  // Poll TMDB for information.
+      const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
+          `${tmdbAPI}&language=en-US&external_source=imdb_id`)
+        .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
+      
+      if (result) {
+		  	  // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
+	  originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
+
+	  } else {
+		  response.infoLog += 'No IMDb result found. \n';
+      }
+    } else {
+      response.infoLog += 'IMDb ID not found. \n';
+    }
+  }
 
   // Go through each stream in the file.
   for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
@@ -412,10 +470,10 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
           streamBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
         }
 
-        response.infoLog += `Video stream ${i}: ${Math.round(file.meta.Duration / 60)}min, `
-          + `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
-        response.infoLog += `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, `
-          + `${Math.round(streamBR / 1000)}kbps \n`;
+        response.infoLog += `Video stream ${i}: ${Math.round(file.meta.Duration / 60)}min, ` +
+          `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
+        response.infoLog += `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, ` +
+          `${Math.round(streamBR / 1000)}kbps \n`;
 
         if (videoIdxFirst === -1) {
           videoIdxFirst = i;
@@ -452,13 +510,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         audioBitrate = file.mediaInfo.track[findMediaInfoItem(file, i)].extra.FromStats_BitRate * 1;
       }
 
+      let streamLanguage = '???';
       if (file.ffProbeData.streams[i].tags !== undefined) {
         streamLanguage = file.ffProbeData.streams[i].tags.language;
       }
 
       if (streamLanguage === targetAudioLanguage) {
-        response.infoLog += `Audio stream ${i}: ${targetAudioLanguage}, `
-          + `${file.ffProbeData.streams[i].codec_name}, ${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
+        response.infoLog += `Audio stream ${i}: ${targetAudioLanguage}, ` +
+          `${file.ffProbeData.streams[i].codec_name}, ${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
         if (audioIdx === -1) {
           response.infoLog += '- First Audio Stream ';
@@ -476,8 +535,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
           }
         }
       } else {
-        response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, `
-          + `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
+        response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
+          `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
         if (audioIdxOther === -1) {
           response.infoLog += '- Undesired Audio Stream ';
@@ -535,9 +594,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   }
 
   if (
-    file.ffProbeData.streams[videoIdx].profile !== undefined
-    && file.ffProbeData.streams[videoIdx].profile.includes !== undefined
-    && file.ffProbeData.streams[videoIdx].profile.includes('10')
+    file.ffProbeData.streams[videoIdx].profile !== undefined &&
+    file.ffProbeData.streams[videoIdx].profile.includes !== undefined &&
+    file.ffProbeData.streams[videoIdx].profile.includes('10')
   ) {
     bolSource10bit = true;
     bolUse10bit = true;
@@ -547,21 +606,21 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   if (videoHeight > maxVideoHeight) {
     bolScaleVideo = true;
     videoNewWidth = Math.round((maxVideoHeight / videoHeight) * videoWidth);
-    response.infoLog
-      += `Video resolution, ${videoWidth} x ${videoHeight}, need to convert to ${videoNewWidth} x ${maxVideoHeight} \n`;
+    response.infoLog +=
+      `Video resolution, ${videoWidth} x ${videoHeight}, need to convert to ${videoNewWidth} x ${maxVideoHeight} \n`;
     videoHeight = maxVideoHeight;
     videoWidth = videoNewWidth;
   }
 
   // Check if it is already hvec, if not then we must transcode
   if (file.ffProbeData.streams[videoIdx].codec_name !== targetVideoCodec) {
-    response.infoLog
-      += `Source codex is ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
+    response.infoLog +=
+      `Source codex is ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
     response.infoLog += `, need to convert to ${targetVideoCodec}${(bolUse10bit) ? '(10)' : ''} \n`;
     if (
-      file.ffProbeData.streams[videoIdx].codec_name === 'mpeg4'
-      || (file.ffProbeData.streams[videoIdx].codec_name === 'h264'
-      && file.ffProbeData.streams[videoIdx].profile.includes('10'))
+      file.ffProbeData.streams[videoIdx].codec_name === 'mpeg4' ||
+      (file.ffProbeData.streams[videoIdx].codec_name === 'h264' &&
+        file.ffProbeData.streams[videoIdx].profile.includes('10'))
     ) {
       bolTranscodeSoftwareDecode = true;
       response.infoLog += 'Need to decode with software codec \n';
@@ -571,23 +630,23 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // We need to set the minimum bitrate and calculate the target codec compression
   if ((videoHeight * videoWidth) > minVideoPixels4K) {
     minimumVideoBitrate = minBitrate4K;
-    response.infoLog
-      += `Video stream determined to be 4K. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog +=
+      `Video stream determined to be 4K. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate4K / (3840 * 2160 * targetFrameRate)) + qualityAdder);
   } else if ((videoHeight * videoWidth) > minVideoPixels1080p) {
     minimumVideoBitrate = minBitrate1080p;
-    response.infoLog
-      += `Video stream determined to be 1080p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog +=
+      `Video stream determined to be 1080p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate1080p / (1920 * 1080 * targetFrameRate)) + qualityAdder);
   } else if ((videoHeight * videoWidth) > minVideoPixels720p) {
     minimumVideoBitrate = minBitrate720p;
-    response.infoLog
-      += `Video stream determined to be 720p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog +=
+      `Video stream determined to be 720p. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate720p / (1280 * 720 * targetFrameRate)) + qualityAdder);
   } else {
     minimumVideoBitrate = minBitrate480p;
-    response.infoLog
-      += `Video stream determined to be 480p or lower. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
+    response.infoLog +=
+      `Video stream determined to be 480p or lower. Minimum bitrate set as: ${(minimumVideoBitrate / 1000)}kbps. \n`;
     targetCodecCompression = ((minBitrate480p / (640 * 480 * targetFrameRate)) + qualityAdder);
   }
 
@@ -618,12 +677,12 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     optimalVideoBitrate = minimumVideoBitrate;
   } else {
     // Source bitrate has enough meat for a decent transcode
-    response.infoLog
-      += `Source bitrate: ${Math.round(videoBR / 1000)}kbps, is high enough to transcode to optimal bitrate. \n`;
+    response.infoLog +=
+      `Source bitrate: ${Math.round(videoBR / 1000)}kbps, is high enough to transcode to optimal bitrate. \n`;
   }
 
-  response.infoLog += `Post-process video stream will be: ${videoWidth} x ${videoHeight} x `
-    + `${Math.round(videoFPS)}fps, ${Math.round(optimalVideoBitrate / 1000)}kbps \n`;
+  response.infoLog += `Post-process video stream will be: ${videoWidth} x ${videoHeight} x ` +
+    `${Math.round(videoFPS)}fps, ${Math.round(optimalVideoBitrate / 1000)}kbps \n`;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Audio Decision section
@@ -652,8 +711,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   if (file.ffProbeData.streams[audioIdx].channels > targetAudioChannels) {
     bolDownMixAudio = true;
     audioNewChannels = targetAudioChannels;
-    response.infoLog += `Source audio channels: ${file.ffProbeData.streams[audioIdx].channels} `
-      + `is higher than target: ${targetAudioChannels} \n`;
+    response.infoLog += `Source audio channels: ${file.ffProbeData.streams[audioIdx].channels} ` +
+      `is higher than target: ${targetAudioChannels} \n`;
   } else {
     audioNewChannels = file.ffProbeData.streams[audioIdx].channels;
   }
@@ -663,21 +722,21 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   // Now what are we going todo with the audio part
   if (audioBR > (optimalAudioBitrate * 1.1)) {
     bolTranscodeAudio = true;
-    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: `
-      + `${Math.round(optimalAudioBitrate / 1000)}kbps \n`;
+    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
+      `${Math.round(optimalAudioBitrate / 1000)}kbps \n`;
   }
 
   // If the audio codec is not what we want then we should transcode
   if (file.ffProbeData.streams[audioIdx].codec_name !== targetAudioCodec) {
     bolTranscodeAudio = true;
-    response.infoLog += `Audio codec: ${file.ffProbeData.streams[audioIdx].codec_name} differs from target: `
-      + `${targetAudioCodec}, changing \n`;
+    response.infoLog += `Audio codec: ${file.ffProbeData.streams[audioIdx].codec_name} differs from target: ` +
+      `${targetAudioCodec}, changing \n`;
   }
 
   // If the source bitrate is less than out target bitrate we should not ever go up
   if (audioBR <= optimalAudioBitrate) {
-    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: `
-      + `${Math.round(optimalAudioBitrate / 1000)}kbps, using existing `;
+    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
+      `${Math.round(optimalAudioBitrate / 1000)}kbps, using existing `;
     optimalAudioBitrate = audioBR;
     if (file.ffProbeData.streams[audioIdx].codec_name !== targetAudioCodec) {
       response.infoLog += 'rate';
@@ -696,7 +755,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     for (let i = 0; i < subsArr.length; i += 1) {
       // Set per-stream variables
       const subStream = subsArr[i];
-      const { originalLibraryFile } = otherArguments;
+      const {
+        originalLibraryFile
+      } = otherArguments;
       let subsFile = '';
       let lang = '';
       let title = '';
@@ -723,14 +784,14 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       } else if (subStream.disposition.cc || (title.toLowerCase().includes('cc'))) {
         strDisposition = '.cc';
         bolCC_SDH = true;
-      } else if (subStream.disposition.commentary || subStream.disposition.description
-        || (title.toLowerCase().includes('commentary')) || (title.toLowerCase().includes('description'))) {
+      } else if (subStream.disposition.commentary || subStream.disposition.description ||
+        (title.toLowerCase().includes('commentary')) || (title.toLowerCase().includes('description'))) {
         strDisposition = '.commentary';
         bolCommentary = true;
       }
 
       // Determine if subtitle should be extracted/copied/removed
-      if (processLanguage.indexOf(lang) !== -1) {
+      if (targetSubLanguage.indexOf(lang) !== -1) {
         if ((bolCommentary && bolRemoveCommentary) || (bolCC_SDH && bolRemoveCC_SDH)) {
           bolCopyStream = false;
           bolExtractStream = false;
@@ -741,7 +802,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       } else if (bolRemoveUnwanted) {
         bolCopyStream = false;
       }
-      if ((processLanguage.indexOf(lang) === -1) && !bolExtractAll) {
+      if ((targetSubLanguage.indexOf(lang) === -1) && !bolExtractAll) {
         bolExtractStream = false;
       }
 
@@ -768,7 +829,9 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       subsFile = subsFile.join('.');
 
       if (subsArr.length !== 0) {
-        const { index } = subStream;
+        const {
+          index
+        } = subStream;
         response.infoLog += `stream ${index}: ${lang}${strDisposition}. `;
         if (!bolRemoveAll) {
           // Copy subtitle stream
