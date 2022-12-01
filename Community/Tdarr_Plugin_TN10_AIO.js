@@ -3,8 +3,6 @@
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
 /* eslint-disable no-await-in-loop */
-/* eslint no-restricted-globals: 0 */
-/* eslint no-template-curly-in-string: 0 */
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // tdarrSkipTest
 
@@ -449,7 +447,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         response.infoLog += 'No IMDb result found. \n';
       }
     } else {
-      response.infoLog += 'IMDb ID not found. \n';
+      response.infoLog += 'IMDb ID not found in filename. \n';
     }
   }
 
