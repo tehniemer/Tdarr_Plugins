@@ -216,7 +216,7 @@ const details = () => ({
       ],
     },
     tooltip: 'Remove all subtitle streams from file.',
-  }, ],
+  },]
 });
 
 function findMediaInfoItem(file, index) {
@@ -428,18 +428,17 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (idMatch) imdbID = idMatch[1];
     if (imdbID.length === (9 || 10)) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
-	  
-	  // Poll TMDB for information.
+
+      // Poll TMDB for information.
       const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
           `${tmdbAPI}&language=en-US&external_source=imdb_id`)
         .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
-      
-      if (result) {
-		  	  // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
-	  originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
 
-	  } else {
-		  response.infoLog += 'No IMDb result found. \n';
+      if (result) {
+        // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
+        originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
+      } else {
+          response.infoLog += 'No IMDb result found. \n';
       }
     } else {
       response.infoLog += 'IMDb ID not found. \n';
@@ -755,9 +754,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     for (let i = 0; i < subsArr.length; i += 1) {
       // Set per-stream variables
       const subStream = subsArr[i];
-      const {
-        originalLibraryFile
-      } = otherArguments;
+      const { originalLibraryFile } = otherArguments;
       let subsFile = '';
       let lang = '';
       let title = '';
@@ -829,9 +826,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       subsFile = subsFile.join('.');
 
       if (subsArr.length !== 0) {
-        const {
-          index
-        } = subStream;
+        const { index } = subStream;
         response.infoLog += `stream ${index}: ${lang}${strDisposition}. `;
         if (!bolRemoveAll) {
           // Copy subtitle stream
