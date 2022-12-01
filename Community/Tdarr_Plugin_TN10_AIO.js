@@ -240,7 +240,7 @@ function findMediaInfoItem(file, index) {
 }
 
 // eslint-disable-next-line no-unused-vars
-const plugin = (file, librarySettings, inputs, otherArguments) => {
+const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
   // eslint-disable-next-line global-require
   const lib = require('../methods/lib')();
