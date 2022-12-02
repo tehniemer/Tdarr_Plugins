@@ -299,7 +299,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  let targetAudioLanguage = [[],[]];
+  const targetAudioLanguage = [[], []];
   targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
@@ -534,7 +534,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
-      let languageIdx = targetAudioLanguage[0].indexOf(streamLanguage);
+      const languageIdx = targetAudioLanguage[0].indexOf(streamLanguage);
       if (languageIdx !== -1) {
         if (targetAudioLanguage[1][languageIdx] === undefined) {
           response.infoLog += '- First Audio Stream ';
@@ -555,6 +555,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           }
         }
       } else {
+        // eslint-disable-next-line no-lonely-if
         if (audioIdxOther === -1) {
           response.infoLog += '- Undesired Audio Stream ';
           audioIdxOther = i;
