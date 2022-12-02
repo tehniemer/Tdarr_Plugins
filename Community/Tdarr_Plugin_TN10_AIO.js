@@ -11,7 +11,7 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // and Tdarr_Plugin_henk_Keep_Native_Lang_Plus_Eng which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
   Stage: 'Pre-processing',
   Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
@@ -299,15 +299,15 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  let targetAudioLanguage = [];
-  targetAudioLanguage = targetAudioLanguage.concat(inputs.audioLanguage);
+  let targetAudioLanguage = [[],[]];
+  targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
   const bolKeepOriginalLanguage = inputs.keepOrigLang;
   const tmdbAPI = inputs.apiKey;
 
   // Subtitle
-  const targetSubLanguage = inputs.subLanguage.toLowerCase().split(',');
+  const targetSubLanguage = inputs.subLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const bolExtract = inputs.subExtract;
   let bolRemoveUnwanted = inputs.subRmExtraLang;
   const bolRemoveCommentary = inputs.subRmCommentary;
@@ -387,6 +387,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   let videoNewWidth = 0;
   let bolSource10bit = false;
   let bolTranscodeSoftwareDecode = false;
+  let videoIdx = -1;
+  let videoIdxFirst = -1;
 
   // Audio
   let audioNewChannels = 0;
@@ -397,6 +399,46 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   let audioBitrate = 0;
   let audioIdxChannels = 0;
   let audioIdxBitrate = 0;
+  let audioIdx = -1;
+  let audioIdxOther = -1;
+
+  // Determine original language if possible.
+  if (bolKeepOriginalLanguage) {
+    let imdbID = '';
+    const idRegex = /(tt\d{7,8})/;
+    const idMatch = currentFileName.match(idRegex);
+    // eslint-disable-next-line prefer-destructuring
+    if (idMatch) imdbID = idMatch[1];
+    if (imdbID.length === (9 || 10)) {
+      response.infoLog += `IMDb ID: ${imdbID} \n`;
+
+      // Poll TMDB for information.
+      const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
+        `${tmdbAPI}&language=en-US&external_source=imdb_id`)
+        .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
+
+      if (result) {
+        // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
+        const originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
+        // Change two letter to three letter code.
+        const original3Language = languages.alpha2ToAlpha3B(originalLanguage);
+        response.infoLog += `Original language: ${originalLanguage}, ` +
+          `Using code: ${original3Language}\n`;
+        // Add original language to array if it doesn't already exist.
+        response.infoLog += `language array1: ${targetAudioLanguage}\n`;
+        response.infoLog += `language array1 length: ${targetAudioLanguage[0].length}\n`;
+        if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
+          targetAudioLanguage[0].push(original3Language);
+        }
+      } else {
+        response.infoLog += 'No IMDb result found. \n';
+      }
+    } else {
+      response.infoLog += 'IMDb ID not found in filename. \n';
+    }
+  }
+  response.infoLog += `language array2: ${targetAudioLanguage}\n`;
+  response.infoLog += `language array2: length: ${targetAudioLanguage[0].length}\n`;
 
   // Subtitle
   let cmdRemove = '';
@@ -415,43 +457,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const bolDoChapters = true;
 
   // Set up required variables
-  let videoIdx = -1;
-  let videoIdxFirst = -1;
-  let audioIdx = -1;
-  let audioIdxOther = -1;
   let strStreamType = '';
   let MILoc = -1;
-
-  // Determine original language if possible.
-  if (bolKeepOriginalLanguage) {
-    let originalLanguage = '';
-    let imdbID = '';
-    const idRegex = /(tt\d{7,8})/;
-    const idMatch = currentFileName.match(idRegex);
-    // eslint-disable-next-line prefer-destructuring
-    if (idMatch) imdbID = idMatch[1];
-    if (imdbID.length === (9 || 10)) {
-      response.infoLog += `IMDb ID: ${imdbID} \n`;
-
-      // Poll TMDB for information.
-      const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
-        `${tmdbAPI}&language=en-US&external_source=imdb_id`)
-        .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
-
-      if (result) {
-        // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
-        originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
-        // Change two letter to three letter code.
-        targetAudioLanguage.push(languages.alpha2ToAlpha3B(originalLanguage));
-        response.infoLog += `Original language: ${originalLanguage}, ` +
-          `Using code: ${languages.alpha2ToAlpha3B(originalLanguage)}\n`;
-      } else {
-        response.infoLog += 'No IMDb result found. \n';
-      }
-    } else {
-      response.infoLog += 'IMDb ID not found in filename. \n';
-    }
-  }
 
   // Go through each stream in the file.
   for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
@@ -524,14 +531,15 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (file.ffProbeData.streams[i].tags !== undefined) {
         streamLanguage = file.ffProbeData.streams[i].tags.language;
       }
+      response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
+        `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
-      if (streamLanguage === targetAudioLanguage) {
-        response.infoLog += `Audio stream ${i}: ${targetAudioLanguage}, ` +
-          `${file.ffProbeData.streams[i].codec_name}, ${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
-
-        if (audioIdx === -1) {
+      let languageIdx = targetAudioLanguage[0].indexOf(streamLanguage);
+      if (languageIdx !== -1) {
+        if (targetAudioLanguage[1][languageIdx] === undefined) {
           response.infoLog += '- First Audio Stream ';
           audioIdx = i;
+          targetAudioLanguage[1][languageIdx] = i;
         } else {
           audioIdxChannels = file.ffProbeData.streams[audioIdx].channels * 1;
           audioIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].BitRate;
@@ -539,15 +547,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           if (audioChannels > audioIdxChannels) {
             response.infoLog += '- More Audio Channels ';
             audioIdx = i;
+            targetAudioLanguage[1][languageIdx] = i;
           } else if (audioChannels === audioIdxChannels && audioBitrate > audioIdxBitrate) {
             response.infoLog += '- Higher Audio Rate ';
             audioIdx = i;
+            targetAudioLanguage[1][languageIdx] = i;
           }
         }
       } else {
-        response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
-          `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
-
         if (audioIdxOther === -1) {
           response.infoLog += '- Undesired Audio Stream ';
           audioIdxOther = i;
@@ -565,6 +572,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
       }
       response.infoLog += ' \n';
+      response.infoLog += `Language array: ${targetAudioLanguage[0]} \n`;
+      response.infoLog += `Stream numbers: ${targetAudioLanguage[1]} \n`;
+      response.infoLog += `Stream numbers length: ${targetAudioLanguage.length} \n`;
     }
 
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -702,7 +712,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   if (audioIdx === -1) {
     if (audioIdxOther !== -1) {
-      response.infoLog += 'Unable to determine audio stream language, proceeding anyways !! \n';
+      response.infoLog += `Using audio stream ${audioIdxOther} \n`;
       audioIdx = audioIdxOther;
     } else {
       response.processFile = false;
