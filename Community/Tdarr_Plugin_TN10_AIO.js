@@ -809,7 +809,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
       }
       if (subStream.codec_name !== undefined) {
-        codec = subStream.codec_name.toLowerCase()
+        codec = subStream.codec_name.toLowerCase();
       }
 
       if (subStream.disposition.forced || (title.includes('forced'))) {
