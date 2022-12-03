@@ -12,7 +12,7 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
-  Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
+  Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
   Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. ' +
