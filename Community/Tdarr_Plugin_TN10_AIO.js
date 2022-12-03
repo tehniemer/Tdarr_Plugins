@@ -227,7 +227,7 @@ function findMediaInfoItem(file, index) {
   for (let i = 0; i < file.mediaInfo.track.length; i += 1) {
     if (file.mediaInfo.track[i].StreamOrder) {
       currMIOrder = file.mediaInfo.track[i].StreamOrder;
-    } else if (strStreamType === ('subtitle' || 'text')) {
+    } else if (strStreamType === 'subtitle' || strStreamType === 'text') {
       currMIOrder = file.mediaInfo.track[i].ID - 1;
     } else {
       currMIOrder = -1;
@@ -572,7 +572,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     // Looking For Subtitles
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (!bolDoSubs && (strStreamType === ('subtitle' || 'text'))) {
+    if (!bolDoSubs && (strStreamType === 'subtitle' || strStreamType === 'text')) {
       bolDoSubs = true;
       response.infoLog += 'Subtitles Found \n';
     }
@@ -783,7 +783,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (bolDoSubs) {
-    const subsArr = file.ffProbeData.streams.filter((row) => row.codec_type.toLowerCase() === ('subtitle' || 'text'));
+    const subsArr = file.ffProbeData.streams.filter((row) => row.codec_type.toLowerCase() === 'subtitle' ||
+      row.codec_type.toLowerCase() === 'text');
     for (let i = 0; i < subsArr.length; i += 1) {
       // Set per-stream variables
       const subStream = subsArr[i];
@@ -791,6 +792,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       let subsFile = '';
       let lang = '';
       let title = '';
+      let codec = '';
       let strDisposition = '';
       let bolCommentary = false;
       let bolCC_SDH = false;
@@ -800,23 +802,26 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       if (subStream.tags !== undefined) {
         if (subStream.tags.language !== undefined) {
-          lang = subStream.tags.language;
+          lang = subStream.tags.language.toLowerCase();
         }
         if (subStream.tags.title !== undefined) {
-          title = subStream.tags.title;
+          title = subStream.tags.title.toLowerCase();
         }
       }
+      if (subStream.codec_name !== undefined) {
+        codec = subStream.codec_name.toLowerCase()
+      }
 
-      if (subStream.disposition.forced || (title.toLowerCase().includes('forced'))) {
+      if (subStream.disposition.forced || (title.includes('forced'))) {
         strDisposition = '.forced';
-      } else if (subStream.disposition.sdh || (title.toLowerCase().includes('sdh'))) {
+      } else if (subStream.disposition.sdh || (title.includes('sdh'))) {
         strDisposition = '.sdh';
         bolCC_SDH = true;
-      } else if (subStream.disposition.cc || (title.toLowerCase().includes('cc'))) {
+      } else if (subStream.disposition.cc || (title.includes('cc'))) {
         strDisposition = '.cc';
         bolCC_SDH = true;
       } else if (subStream.disposition.commentary || subStream.disposition.description ||
-        (title.toLowerCase().includes('commentary')) || (title.toLowerCase().includes('description'))) {
+        (title.includes('commentary')) || (title.includes('description'))) {
         strDisposition = '.commentary';
         bolCommentary = true;
       }
@@ -838,14 +843,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       // Determine subtitle stream type
-      if (subStream.codec_name === ('subrip' || 'mov_text')) {
+      if (codec === 'subrip' || codec === 'mov_text') {
         bolTextSubs = true;
         response.infoLog += 'Text ';
-        if (subStream.codec_name === 'mov_text') {
+        if (codec === 'mov_text') {
           bolConvertSubs = true;
-          response.infoLog += '\nSubtitles Found (mov_text), will convert ';
+          response.infoLog += '(mov_text), will convert ';
         }
-      } else if (subStream.codec_name === ('S_TEXT/WEBVTT')) {
+      } else if (codec === 's_text/webvtt') {
         bolCopyStream = false;
         response.infoLog += 'S_TEXT/WEBVTT ';
       } else {
