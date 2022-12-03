@@ -3,7 +3,6 @@
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
 /* eslint no-await-in-loop: 0 */
-
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // tdarrSkipTest
 
@@ -11,15 +10,16 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // and Tdarr_Plugin_henk_Keep_Native_Lang_Plus_Eng which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
   Stage: 'Pre-processing',
   Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
   Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. ' +
-    'Removes all but one video stream. Audio language(s) are user defined and the option to keep the original ' +
-    'as-filmed audio language is available. At least one audio stream wil be kept. Extract/copy/remove embedded ' +
-    'text and image based subtitles. S_TEXT/WEBVTT subtitles will be removed.\n\n ',
+    'Removes all but one video stream. Keeps user defined audio language(s) as well as the original, ' +
+    'as-filmed, language if enabled. At least one audio stream wil be kept regardless of settings, all others ' +
+    'will be removed. Extract/copy/remove embedded text and image based subtitles. ' +
+    'S_TEXT/WEBVTT subtitles will be removed.\n\n',
   Version: '2.00',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
   Inputs: [{
@@ -299,7 +299,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  const targetAudioLanguage = [[], []];
+  let targetAudioLanguage = [[], []];
   targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
@@ -399,7 +399,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   let audioBitrate = 0;
   let audioIdxChannels = 0;
   let audioIdxBitrate = 0;
-  let audioIdx = -1;
   let audioIdxOther = -1;
 
   // Determine original language if possible.
@@ -409,12 +408,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (imdbID.length === (9 || 10)) {
+    if (8 < imdbID.length < 11) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
       const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
-        `${tmdbAPI}&language=en-US&external_source=imdb_id`)
+          `${tmdbAPI}&language=en-US&external_source=imdb_id`)
         .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
 
       if (result) {
@@ -422,11 +421,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         const originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
         // Change two letter to three letter code.
         const original3Language = languages.alpha2ToAlpha3B(originalLanguage);
-        response.infoLog += `Original language: ${originalLanguage}, ` +
-          `Using code: ${original3Language}\n`;
+        response.infoLog += `Original language: ${originalLanguage}, Using code: ${original3Language}\n`;
         // Add original language to array if it doesn't already exist.
-        response.infoLog += `language array1: ${targetAudioLanguage}\n`;
-        response.infoLog += `language array1 length: ${targetAudioLanguage[0].length}\n`;
         if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
           targetAudioLanguage[0].push(original3Language);
         }
@@ -437,12 +433,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'IMDb ID not found in filename. \n';
     }
   }
-  response.infoLog += `language array2: ${targetAudioLanguage}\n`;
-  response.infoLog += `language array2: length: ${targetAudioLanguage[0].length}\n`;
 
   // Subtitle
-  let cmdRemove = '';
-  let cmdExtract = '';
+  let cmdRemoveSubs = '';
+  let cmdExtractSubs = '';
   let bolDoSubs = false;
   let bolConvertSubs = false;
   let bolExtractAll = false;
@@ -534,24 +528,21 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
-      const languageIdx = targetAudioLanguage[0].indexOf(streamLanguage);
-      if (languageIdx !== -1) {
-        if (targetAudioLanguage[1][languageIdx] === undefined) {
+      const audioIdx = targetAudioLanguage[0].indexOf(streamLanguage);
+      if (audioIdx !== -1) {
+        if (targetAudioLanguage[1][audioIdx] === undefined) {
           response.infoLog += '- First Audio Stream ';
-          audioIdx = i;
-          targetAudioLanguage[1][languageIdx] = i;
+          targetAudioLanguage[1][audioIdx] = i;
         } else {
-          audioIdxChannels = file.ffProbeData.streams[audioIdx].channels * 1;
-          audioIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].BitRate;
+          audioIdxChannels = file.ffProbeData.streams[targetAudioLanguage[1][audioIdx]].channels * 1;
+          audioIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, targetAudioLanguage[1][audioIdx])].BitRate;
 
           if (audioChannels > audioIdxChannels) {
             response.infoLog += '- More Audio Channels ';
-            audioIdx = i;
-            targetAudioLanguage[1][languageIdx] = i;
+            targetAudioLanguage[1][audioIdx] = i;
           } else if (audioChannels === audioIdxChannels && audioBitrate > audioIdxBitrate) {
             response.infoLog += '- Higher Audio Rate ';
-            audioIdx = i;
-            targetAudioLanguage[1][languageIdx] = i;
+            targetAudioLanguage[1][audioIdx] = i;
           }
         }
       } else {
@@ -573,9 +564,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
       }
       response.infoLog += ' \n';
-      response.infoLog += `Language array: ${targetAudioLanguage[0]} \n`;
-      response.infoLog += `Stream numbers: ${targetAudioLanguage[1]} \n`;
-      response.infoLog += `Stream numbers length: ${targetAudioLanguage.length} \n`;
     }
 
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -693,10 +681,11 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'Transcoding with a codec change using source bitrate. \n';
       optimalVideoBitrate = videoBR;
     }
-  // eslint-disable-next-line no-restricted-globals
+    // eslint-disable-next-line no-restricted-globals
   } else if (isNaN(videoBR)) {
     // Cannot determine source bitrate
-    response.infoLog += 'Cannot determine source bitrate, throwing in towel and using minimum acceptable bitrate. \n';
+    response.infoLog +=
+      'Cannot determine source bitrate, throwing in towel and using minimum acceptable bitrate. \n';
     optimalVideoBitrate = minimumVideoBitrate;
   } else {
     // Source bitrate has enough meat for a decent transcode
@@ -711,10 +700,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Audio Decision section
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if (audioIdx === -1) {
+  if (targetAudioLanguage[1].length === undefined) {
     if (audioIdxOther !== -1) {
-      response.infoLog += `Using audio stream ${audioIdxOther} \n`;
-      audioIdx = audioIdxOther;
+      targetAudioLanguage[1].push(audioIdxOther);
     } else {
       response.processFile = false;
       response.error = true;
@@ -723,51 +711,68 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  response.infoLog += `Using audio stream ${audioIdx} \n`;
+  let cmdAudioMap = '';
+  for (let i = 0; i < targetAudioLanguage[1].length; i += 1) {
+    if (targetAudioLanguage[1][i] !== undefined) {
+      // Set per-stream variables
+      const streamIdx = targetAudioLanguage[1][i];
+      cmdAudioMap += ` -map 0:${streamIdx} `;
+      response.infoLog += `Keeping audio stream ${streamIdx} \n`;
 
-  let audioBR = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].BitRate * 1;
+      let audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].BitRate * 1;
 
-  // eslint-disable-next-line no-restricted-globals
-  if (isNaN(audioBR) && file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].extra !== undefined) {
-    audioBR = file.mediaInfo.track[findMediaInfoItem(file, audioIdx)].extra.FromStats_BitRate * 1;
-  }
+      // eslint-disable-next-line no-restricted-globals
+      if (isNaN(audioBR) && file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].extra !== undefined) {
+        audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].extra.FromStats_BitRate * 1;
+      }
 
-  if (file.ffProbeData.streams[audioIdx].channels > targetAudioChannels) {
-    bolDownMixAudio = true;
-    audioNewChannels = targetAudioChannels;
-    response.infoLog += `Source audio channels: ${file.ffProbeData.streams[audioIdx].channels} ` +
-      `is higher than target: ${targetAudioChannels} \n`;
-  } else {
-    audioNewChannels = file.ffProbeData.streams[audioIdx].channels;
-  }
+      if (file.ffProbeData.streams[streamIdx].channels > targetAudioChannels) {
+        bolDownMixAudio = true;
+        audioNewChannels = targetAudioChannels;
+        response.infoLog += `Source audio channels: ${file.ffProbeData.streams[streamIdx].channels} ` +
+          `is higher than target: ${targetAudioChannels} \n`;
+      } else {
+        audioNewChannels = file.ffProbeData.streams[streamIdx].channels;
+      }
 
-  optimalAudioBitrate = audioNewChannels * targetAudioBitratePerChannel;
+      optimalAudioBitrate = audioNewChannels * targetAudioBitratePerChannel;
 
-  // Now what are we going todo with the audio part
-  if (audioBR > (optimalAudioBitrate * 1.1)) {
-    bolTranscodeAudio = true;
-    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
-      `${Math.round(optimalAudioBitrate / 1000)}kbps \n`;
-  }
+      // Now what are we going todo with the audio part
+      if (audioBR > (optimalAudioBitrate * 1.1)) {
+        bolTranscodeAudio = true;
+        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
+          `${Math.round(optimalAudioBitrate / 1000)}kbps \n`;
+      }
 
-  // If the audio codec is not what we want then we should transcode
-  if (file.ffProbeData.streams[audioIdx].codec_name !== targetAudioCodec) {
-    bolTranscodeAudio = true;
-    response.infoLog += `Audio codec: ${file.ffProbeData.streams[audioIdx].codec_name} differs from target: ` +
-      `${targetAudioCodec}, changing \n`;
-  }
+      // If the audio codec is not what we want then we should transcode
+      if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
+        bolTranscodeAudio = true;
+        response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
+          `${targetAudioCodec}, changing \n`;
+      }
 
-  // If the source bitrate is less than out target bitrate we should not ever go up
-  if (audioBR <= optimalAudioBitrate) {
-    response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
-      `${Math.round(optimalAudioBitrate / 1000)}kbps, using existing `;
-    optimalAudioBitrate = audioBR;
-    if (file.ffProbeData.streams[audioIdx].codec_name !== targetAudioCodec) {
-      response.infoLog += 'rate';
-    } else {
-      response.infoLog += 'stream';
+      // If the source bitrate is less than out target bitrate we should not ever go up
+      if (audioBR <= optimalAudioBitrate) {
+        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
+          `${Math.round(optimalAudioBitrate / 1000)}kbps, using existing `;
+        optimalAudioBitrate = audioBR;
+        if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
+          response.infoLog += 'rate';
+        } else {
+          response.infoLog += 'stream';
+        }
+        response.infoLog += ' \n';
+      }
+
+      if (bolTranscodeAudio) {
+        cmdAudioMap += ` -c:a:0 ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
+      } else {
+        cmdAudioMap += ' -c:a:0 copy ';
+      }
+      if (bolDownMixAudio) {
+        cmdAudioMap += ` -ac ${audioNewChannels} `;
+      }
     }
-    response.infoLog += ' \n';
   }
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -790,12 +795,13 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       let bolExtractStream = true;
       let bolTextSubs = false;
 
-      if (subStream && subStream.tags && subStream.tags.language) {
-        lang = subStream.tags.language;
-      }
-
-      if (subStream && subStream.tags && subStream.tags.title) {
-        title = subStream.tags.title;
+      if (subStream.tags !== undefined) {
+        if (subStream.tags.language !== undefined) {
+          lang = subStream.tags.language;
+        }
+        if (subStream.tags.title !== undefined) {
+          title = subStream.tags.title;
+        }
       }
 
       if (subStream.disposition.forced || (title.toLowerCase().includes('forced'))) {
@@ -860,7 +866,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
             // Skip/Remove undesired subtitle streams.
           } else {
             response.infoLog += 'Stream is unwanted, removing. ';
-            cmdRemove += ` -map -0:${index}`;
+            cmdRemoveSubs += ` -map -0:${index}`;
           }
         }
         // Verify subtitle track is a format that can be extracted.
@@ -872,7 +878,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
             response.infoLog += 'External subtitle already exists, will not extract. ';
           } else {
             response.infoLog += 'Stream will be extracted to file. ';
-            cmdExtract += ` -map 0:${index} "${subsFile}"`;
+            cmdExtractSubs += ` -map 0:${index} "${subsFile}"`;
           }
         }
         response.infoLog += '\n';
@@ -900,7 +906,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   }
 
   strFFcmd += ' -y <io>';
-  strFFcmd += cmdExtract;
+  strFFcmd += cmdExtractSubs;
   strFFcmd += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
@@ -963,15 +969,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     strFFcmd += ' -c:v:0 copy ';
   }
 
-  strFFcmd += ` -map 0:${audioIdx} `;
-  if (bolTranscodeAudio) {
-    strFFcmd += ` -c:a:0 ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
-  } else {
-    strFFcmd += ' -c:a:0 copy ';
-  }
-  if (bolDownMixAudio) {
-    strFFcmd += ` -ac ${audioNewChannels} `;
-  }
+  strFFcmd += cmdAudioMap;
 
   if (bolDoSubs) {
     if (bolRemoveAll) {
@@ -990,7 +988,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     strFFcmd += ' -map_chapters -1 ';
   }
 
-  strFFcmd += cmdRemove;
+  strFFcmd += cmdRemoveSubs;
   strFFcmd += strTranscodeFileOptions;
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   response.preset += strFFcmd;
