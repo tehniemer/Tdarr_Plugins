@@ -408,7 +408,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (11 > imdbID.length > 8) {
+    if (imdbID.length === (9 || 10)) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
