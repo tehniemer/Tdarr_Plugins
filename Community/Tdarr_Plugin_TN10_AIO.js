@@ -299,7 +299,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  let targetAudioLanguage = [[], []];
+  const targetAudioLanguage = [[], []];
   targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
@@ -408,7 +408,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (8 < imdbID.length < 11) {
+    if (11 > imdbID.length > 8) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
