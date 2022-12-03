@@ -408,7 +408,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (imdbID.length === (9 || 10)) {
+    if (imdbID.length === 9 || 10) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
@@ -525,10 +525,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (file.ffProbeData.streams[i].tags !== undefined) {
         streamLanguage = file.ffProbeData.streams[i].tags.language;
       }
+
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
 
       const audioIdx = targetAudioLanguage[0].indexOf(streamLanguage);
+
       if (audioIdx !== -1) {
         if (targetAudioLanguage[1][audioIdx] === undefined) {
           response.infoLog += '- First Audio Stream ';
@@ -700,7 +702,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Audio Decision section
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if (targetAudioLanguage[1].length === undefined) {
+  if (targetAudioLanguage[1].length === 0) {
     if (audioIdxOther !== -1) {
       targetAudioLanguage[1].push(audioIdxOther);
     } else {
@@ -712,6 +714,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   }
 
   let cmdAudioMap = '';
+
   for (let i = 0; i < targetAudioLanguage[1].length; i += 1) {
     if (targetAudioLanguage[1][i] !== undefined) {
       // Set per-stream variables
