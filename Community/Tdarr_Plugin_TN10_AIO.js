@@ -20,7 +20,7 @@ const details = () => ({
     'as-filmed, language if enabled. At least one audio stream wil be kept regardless of settings, all others ' +
     'will be removed. Extract/copy/remove embedded text and image based subtitles. ' +
     'S_TEXT/WEBVTT subtitles will be removed.\n\n',
-  Version: '2.00',
+  Version: '1.00',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
   Inputs: [{
     name: 'minBitrate4K',
