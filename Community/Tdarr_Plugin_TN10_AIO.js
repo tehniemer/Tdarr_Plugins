@@ -294,7 +294,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Process Handling
   const intStatsDays = 21; // Update stats if they are older than this many days
   const bolReprocess = inputs.reProcess;
-  
+
   // Video
   const targetVideoCodec = 'hevc'; // Desired Video Codec, if you change this it will might require code changes
   let bolUse10bit = inputs.re_encode10bit;
@@ -542,7 +542,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
-		
+
       const audioIdx = targetAudioLanguage[0].indexOf(streamLanguage);
 
       if (targetAudioLanguage[0][0] !== 'all') {
@@ -581,7 +581,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
             }
           }
         }
-	  } else {
+      } else {
         response.infoLog += '- Keeping All Audio Stream(s) ';
         targetAudioLanguage[1].push(audioIdx);
       }
