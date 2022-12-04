@@ -272,7 +272,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     container: '.mkv',
     handBrakeMode: false,
     FFmpegMode: true,
-    reQueueAfter: true,
+    reQueueAfter: false,
     infoLog: '',
   };
 
@@ -292,7 +292,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Settings
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Process Handling
-  const intStatsDays = 21; // Update stats if they are older than this many days
   const bolReprocess = inputs.reProcess;
 
   // Video
@@ -331,9 +330,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const proc = require('child_process');
-  let bolStatsAreCurrent = false;
-
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     response.processFile = false;
@@ -345,70 +341,37 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // If the file has already been processed we dont need to do more
   if (file.container === 'mkv' && (file.mediaInfo.track[0].extra !== undefined &&
       file.mediaInfo.track[0].extra.TNPROCESSED !== undefined &&
-      file.mediaInfo.track[0].extra.TNPROCESSED === '1' && !bolReprocess)) {
-    response.processFile = false;
-    response.infoLog += 'File already Processed! \n';
-    return response;
-  }
-
-  // If the existing container is mkv there is a possibility the stats were not updated during any previous transcode.
-  if (file.container === 'mkv') {
-    let datStats = Date.parse(new Date(70, 1).toISOString());
-    if (
-      file.ffProbeData.streams[0].tags !== undefined &&
-      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
-    ) {
-      datStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
-    }
-
-    if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
-      const TNDate = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
-
-      response.infoLog += `TNDate: ${TNDate}, StatsDate: ${datStats}\n`;
-      if (datStats >= TNDate) {
-        bolStatsAreCurrent = true;
-      }
+      file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
+    if (bolReprocess) {
+      response.infoLog += 'File already processed, processing again. \n';
     } else {
-      const statsThres = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
-
-      response.infoLog += `StatsThres: ${statsThres}, StatsDate: ${datStats}\n`;
-      if (datStats >= statsThres) {
-        bolStatsAreCurrent = true;
-      }
-    }
-
-    if (!bolStatsAreCurrent) {
-      response.infoLog += 'Stats need to be updated! \n';
-
-      try {
-        proc.execSync(`mkvpropedit --add-track-statistics-tags "${currentFileName}"`);
-        return response;
-      } catch (err) {
-        response.infoLog += 'Error Updating Status Probably Bad file, A remux will probably fix, will continue\n';
-      }
-      response.infoLog += 'Getting Stats Objects, again! \n';
+      response.infoLog += 'File already processed! \n';
+      response.processFile = false;
+      return response;
     }
   }
 
   // Logic Controls
+  /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   // Video
+  let bolTranscodeVideo = true; // We will assume we will be transcoding
   let bolScaleVideo = false;
-  let bolTranscodeVideo = false;
-  const bolChangeFrameRateVideo = false;
+  let bolSource10bit = false;
+  let bolTranscodeSoftwareDecode = false;
   let optimalVideoBitrate = 0;
   let minimumVideoBitrate = 0;
   let targetCodecCompression = 0;
   let videoNewWidth = 0;
-  let bolSource10bit = false;
-  let bolTranscodeSoftwareDecode = false;
   let videoIdx = -1;
   let videoIdxFirst = -1;
 
   // Audio
+  let bolTranscodeAudio = false;
+  let bolReduceBitrate = false;
+  let bolReduceChannels = false;
   let audioNewChannels = 0;
   let optimalAudioBitrate = 0;
-  let bolTranscodeAudio = false;
-  let bolDownMixAudio = false;
   let audioChannels = 0;
   let audioBitrate = 0;
   let audioIdxChannels = 0;
@@ -451,7 +414,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Subtitle
   let cmdRemoveSubs = '';
   let cmdExtractSubs = '';
-  let bolDoSubs = false;
+  let bolTranscodeSubs = false;
   let bolConvertSubs = false;
   let bolExtractAll = false;
   if (bolExtract && targetSubLanguage === 'all') {
@@ -461,12 +424,11 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     bolRemoveUnwanted = false;
   }
 
-  // Chapters
-  const bolDoChapters = true;
-
   // Set up required variables
   let strStreamType = '';
   let MILoc = -1;
+
+  /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Go through each stream in the file.
   for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
@@ -592,11 +554,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     // Looking For Subtitles
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (!bolDoSubs && (strStreamType === 'subtitle' || strStreamType === 'text')) {
-      bolDoSubs = true;
+    if (!bolTranscodeSubs && (strStreamType === 'subtitle' || strStreamType === 'text')) {
+      bolTranscodeSubs = true;
       response.infoLog += 'Subtitles Found \n';
     }
-    /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
   }
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -612,7 +573,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   response.infoLog += `Using video stream ${videoIdx} \n`;
 
-  bolTranscodeVideo = true; // We will assume we will be transcoding
   MILoc = findMediaInfoItem(file, videoIdx);
 
   let videoHeight = file.ffProbeData.streams[videoIdx].height * 1;
@@ -750,7 +710,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       if (file.ffProbeData.streams[streamIdx].channels > targetAudioChannels) {
-        bolDownMixAudio = true;
+        bolReduceChannels = true;
         audioNewChannels = targetAudioChannels;
         response.infoLog += `Source audio channels: ${file.ffProbeData.streams[streamIdx].channels} ` +
           `is higher than target: ${targetAudioChannels} \n`;
@@ -762,14 +722,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Now what are we going todo with the audio part
       if (audioBR > (optimalAudioBitrate * 1.1)) {
-        bolTranscodeAudio = true;
+        bolReduceBitrate = true;
         response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
           `${Math.round(optimalAudioBitrate / 1000)}kbps \n`;
       }
 
       // If the audio codec is not what we want then we should transcode
       if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-        bolTranscodeAudio = true;
+        bolReduceBitrate = true;
         response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
           `${targetAudioCodec}, changing \n`;
       }
@@ -787,13 +747,15 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         response.infoLog += ' \n';
       }
 
-      if (bolTranscodeAudio) {
+      if (bolReduceBitrate) {
         cmdAudioMap += ` -c:a:0 ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
+        bolTranscodeAudio = true;
       } else {
         cmdAudioMap += ' -c:a:0 copy ';
       }
-      if (bolDownMixAudio) {
+      if (bolReduceChannels) {
         cmdAudioMap += ` -ac ${audioNewChannels} `;
+        bolTranscodeAudio = true;
       }
     }
   }
@@ -802,7 +764,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Subtitle Decision section
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  if (bolDoSubs) {
+  if (bolTranscodeSubs) {
     const subsArr = file.ffProbeData.streams.filter((row) => row.codec_type.toLowerCase() === 'subtitle' ||
       row.codec_type.toLowerCase() === 'text');
     for (let i = 0; i < subsArr.length; i += 1) {
@@ -915,6 +877,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (bolRemoveAll) {
       response.infoLog += 'Removing all subtitles!\n';
     }
+    if (cmdRemoveSubs === '' && cmdExtractSubs === '' && !bolRemoveAll) {
+      bolTranscodeSubs = false;
+    }
   }
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -940,18 +905,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
     strFFcmd += ' -c:v:0 hevc_vaapi ';
 
-    if (bolScaleVideo || bolUse10bit || bolTranscodeSoftwareDecode || bolChangeFrameRateVideo) {
+    if (bolScaleVideo || bolUse10bit || bolTranscodeSoftwareDecode) {
       let strOptions = '';
       let strFormat = '';
       if (bolScaleVideo) {
         // Used when video is above our target
         strOptions += `w=-1:h=${maxVideoHeight}`;
-      }
-
-      let strChangeVideoRateString = '';
-      if (bolChangeFrameRateVideo) {
-        // Used to change the framerate to the target framerate
-        strChangeVideoRateString = `fps=${targetFrameRate},`;
       }
 
       if (strFormat.length > 0) {
@@ -986,9 +945,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       if (bolTranscodeSoftwareDecode) {
-        strFFcmd += ` -vf "${strChangeVideoRateString} ${strOptions}" `;
+        strFFcmd += ` -vf "${strOptions}" `;
       } else {
-        strFFcmd += ` -vf "${strChangeVideoRateString} scale_vaapi=${strOptions}" `;
+        strFFcmd += ` -vf "scale_vaapi=${strOptions}" `;
       }
     }
     // Used when video is above our target
@@ -999,7 +958,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   strFFcmd += cmdAudioMap;
 
-  if (bolDoSubs) {
+  if (bolTranscodeSubs) {
     if (bolRemoveAll) {
       strFFcmd += ' -map -0:s ';
     } else if (bolConvertSubs) {
@@ -1009,18 +968,19 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  strFFcmd += ` -map_metadata:g -1 -metadata TNPROCESSED=1 -metadata TNDATE=${new Date().toISOString()} `;
-  if (bolDoChapters) {
-    strFFcmd += ' -map_chapters 0 ';
-  } else {
-    strFFcmd += ' -map_chapters -1 ';
-  }
-
+  strFFcmd += ' -map_chapters 0 ';
   strFFcmd += cmdRemoveSubs;
   strFFcmd += strTranscodeFileOptions;
+
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  response.preset += strFFcmd;
-  response.infoLog += 'File needs work. Transcoding. \n';
+
+  if (bolTranscodeVideo || bolTranscodeAudio || bolTranscodeSubs) {
+    response.infoLog += 'File needs work. Transcoding. \n';
+    response.preset += strFFcmd;
+  } else {
+    response.infoLog += 'Nothing to do, skipping!\n';
+    response.processFile = false;
+  }
   return response;
 };
 
