@@ -748,7 +748,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       if (bolReduceBitrate) {
-	    cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
+        cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
         bolTranscodeAudio = true;
       } else {
         cmdAudioMap += ` -c:a:${i} copy `;
@@ -859,9 +859,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           } else {
             response.infoLog += '- Removing ';
             cmdRemoveSubs += ` -map -0:${index}`;
-          } 
+          }
         } else {
-            response.infoLog += '- Removing ';
+          response.infoLog += '- Removing ';
         }
         // Verify subtitle track is a format that can be extracted.
         if (bolExtractStream || bolExtractAll) {
