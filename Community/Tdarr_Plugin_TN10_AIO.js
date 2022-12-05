@@ -521,7 +521,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
               targetAudioLanguage[1][audioIdx] = i;
             } else if (audioChannels === audioIdxChannels && (audioBitrate > audioIdxBitrate ||
                 file.ffProbeData.streams[i].disposition.default)) {
-              response.infoLog += '- Higher Audio Rate ';
+              response.infoLog += '- Higher Audio Rate / Tagged Default ';
               targetAudioLanguage[1][audioIdx] = i;
             }
           }
@@ -538,14 +538,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
               response.infoLog += '- Backup Stream More Audio Channels ';
               audioIdxOther = i;
             } else if (audioChannels === audioIdxChannels && audioBitrate > audioIdxBitrate) {
-              response.infoLog += '- Backup Stream Higher Audio Rate ';
+              response.infoLog += '- Backup Stream Higher Audio Rate / Tagged Default';
               audioIdxOther = i;
             }
           }
         }
       } else {
         response.infoLog += '- Keeping All Audio Stream(s) ';
-        targetAudioLanguage[1].push(audioIdx);
+        targetAudioLanguage[1].push(i);
       }
       response.infoLog += ' \n';
     }
@@ -700,7 +700,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       // Set per-stream variables
       const streamIdx = targetAudioLanguage[1][i];
       cmdAudioMap += ` -map 0:${streamIdx} `;
-      response.infoLog += `Keeping audio stream ${streamIdx} \n`;
+      response.infoLog += `Using audio stream ${streamIdx} \n`;
 
       let audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].BitRate * 1;
 
@@ -737,21 +737,21 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       // If the source bitrate is less than out target bitrate we should not ever go up
       if (audioBR <= optimalAudioBitrate) {
         response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
-          `${Math.round(optimalAudioBitrate / 1000)}kbps, using existing `;
+          `${Math.round(optimalAudioBitrate / 1000)}kbps. Keeping existing `;
         optimalAudioBitrate = audioBR;
         if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-          response.infoLog += 'rate';
+          response.infoLog += 'rate.';
         } else {
-          response.infoLog += 'stream';
+          response.infoLog += 'stream.';
         }
         response.infoLog += ' \n';
       }
 
       if (bolReduceBitrate) {
-        cmdAudioMap += ` -c:a:0 ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
+	    cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
         bolTranscodeAudio = true;
       } else {
-        cmdAudioMap += ' -c:a:0 copy ';
+        cmdAudioMap += ` -c:a:${i} copy `;
       }
       if (bolReduceChannels) {
         cmdAudioMap += ` -ac ${audioNewChannels} `;
@@ -825,18 +825,20 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       // Determine subtitle stream type
+      response.infoLog += 'Subtitle ';
       if (codec === 'subrip' || codec === 'mov_text') {
         bolTextSubs = true;
-        response.infoLog += 'Text ';
-        if (codec === 'mov_text') {
+        if (codec === 'mov_text' && !bolRemoveAll) {
           bolConvertSubs = true;
           response.infoLog += '(mov_text), will convert ';
+        } else {
+          response.infoLog += 'text ';
         }
       } else if (codec === 's_text/webvtt') {
         bolCopyStream = false;
         response.infoLog += 'S_TEXT/WEBVTT ';
       } else {
-        response.infoLog += 'Image ';
+        response.infoLog += 'image ';
       }
 
       // Build subtitle file names.
@@ -857,15 +859,17 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           } else {
             response.infoLog += '- Removing ';
             cmdRemoveSubs += ` -map -0:${index}`;
-          }
+          } 
+        } else {
+            response.infoLog += '- Removing ';
         }
         // Verify subtitle track is a format that can be extracted.
         if (bolExtractStream || bolExtractAll) {
           // Extract subtitle if it doesn't exist on disk or the option to overwrite is set.
           if (!bolTextSubs) {
-            response.infoLog += '- Subtitle is not text based, can not extract. ';
+            response.infoLog += '- Stream is not text based, can not extract. ';
           } else if (fs.existsSync(`${subsFile}`) && !bolOverwright) {
-            response.infoLog += '- External subtitle already exists, will not extract. ';
+            response.infoLog += '- External subtitle file already exists, will not extract. ';
           } else {
             response.infoLog += '- Extracting ';
             cmdExtractSubs += ` -map 0:${index} "${subsFile}"`;
@@ -873,9 +877,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
         response.infoLog += '\n';
       }
-    }
-    if (bolRemoveAll) {
-      response.infoLog += 'Removing all subtitles!\n';
     }
     if (cmdRemoveSubs === '' && cmdExtractSubs === '' && !bolRemoveAll) {
       bolTranscodeSubs = false;
@@ -968,7 +969,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  strFFcmd += ' -map_chapters 0 ';
+  strFFcmd += '-map_metadata:g -1 -metadata TNPROCESSED=1 -map_chapters 0 ';
   strFFcmd += cmdRemoveSubs;
   strFFcmd += strTranscodeFileOptions;
 
