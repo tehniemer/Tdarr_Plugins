@@ -363,6 +363,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
     ) {
       epochStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
+      // eslint-disable-next-line prefer-destructuring
       statsDate = new Date(epochStats).toISOString().split('T')[0];
     }
 
@@ -1004,11 +1005,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   }
 
   strFFcmd += cmdAudioMap;
-
   strFFcmd += cmdCopySubs;
-
-  strFFcmd += ` -map_metadata:g -1 -metadata TNPROCESSED=1 -metadata TNDATE=${new Date().toISOString()} -map_chapters 0 `;
-
+  strFFcmd += ` -map_metadata:g -1 -metadata TNPROCESSED=1 -metadata TNDATE=${new Date().toISOString()}`;
+  strFFcmd += ' -map_chapters 0 ';
   strFFcmd += strTranscodeFileOptions;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
