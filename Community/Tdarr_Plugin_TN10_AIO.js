@@ -272,7 +272,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     container: '.mkv',
     handBrakeMode: false,
     FFmpegMode: true,
-    reQueueAfter: false,
+    reQueueAfter: true,
     infoLog: '',
   };
 
@@ -292,6 +292,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Settings
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Process Handling
+  const intStatsDays = 21; // Update stats if they are older than this many days
   const bolReprocess = inputs.reProcess;
 
   // Video
@@ -330,6 +331,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  const proc = require('child_process');
+  let bolStatsAreCurrent = false;
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     response.processFile = false;
@@ -348,6 +351,49 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'File already processed! \n';
       response.processFile = false;
       return response;
+    }
+  }
+
+  // If the existing container is mkv there is a possibility the stats were not updated during any previous transcode.
+  if (file.container === 'mkv') {
+    let epochStats = Date.parse(new Date(70, 1).toISOString());
+    let statsDate = new Date(epochStats).toISOString().split('T')[0];
+    if (
+      file.ffProbeData.streams[0].tags !== undefined &&
+      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
+    ) {
+      epochStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
+      statsDate = new Date(epochStats).toISOString().split('T')[0];
+    }
+
+    if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
+      const epochTN = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
+      const TNDate = new Date(epochTN).toISOString().split('T')[0];
+
+      response.infoLog += `StatsDate: ${statsDate}, TNDate: ${TNDate}\n`;
+      if (epochStats >= epochTN) {
+        bolStatsAreCurrent = true;
+      }
+    } else {
+      const epochThresh = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
+      const threshDate = new Date(epochThresh).toISOString().split('T')[0];
+
+      response.infoLog += `StatsDate: ${statsDate}, StatsThres: ${threshDate}\n`;
+      if (epochStats >= epochThresh) {
+        bolStatsAreCurrent = true;
+      }
+    }
+
+    if (!bolStatsAreCurrent) {
+      response.infoLog += 'Stats need to be updated! \n';
+
+      try {
+        proc.execSync(`mkvpropedit --add-track-statistics-tags "${currentFileName}"`);
+        return response;
+      } catch (err) {
+        response.infoLog += 'Error Updating Status Probably Bad file, A remux will probably fix, will continue\n';
+      }
+      response.infoLog += 'Getting Stats Objects, again! \n';
     }
   }
 
@@ -385,7 +431,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (imdbID.length === 9 || 10) {
+    if (imdbID.length === 9 || imdbID.length === 10) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
@@ -412,10 +458,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   }
 
   // Subtitle
-  let cmdRemoveSubs = '';
+  let cmdCopySubs = '';
   let cmdExtractSubs = '';
   let bolTranscodeSubs = false;
-  let bolConvertSubs = false;
   let bolExtractAll = false;
   if (bolExtract && targetSubLanguage === 'all') {
     bolExtractAll = true;
@@ -781,6 +826,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       let bolCopyStream = true;
       let bolExtractStream = true;
       let bolTextSubs = false;
+      let bolConvertSubs = false;
 
       if (subStream.tags !== undefined) {
         if (subStream.tags.language !== undefined) {
@@ -851,14 +897,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (subsArr.length !== 0) {
         const { index } = subStream;
         response.infoLog += `stream ${index}: ${lang}${strDisposition}. `;
-        if (!bolRemoveAll) {
-          // Copy subtitle stream
-          if (bolCopyStream) {
-            response.infoLog += '- Copying ';
-            // Skip/Remove undesired subtitle streams.
+        // Copy subtitle stream
+        if (bolCopyStream && !bolRemoveAll) {
+          response.infoLog += '- Copying ';
+          cmdCopySubs += ` -map 0:${index} -c:s:${i}`;
+          if (bolConvertSubs) {
+            cmdCopySubs += ' srt';
           } else {
-            response.infoLog += '- Removing ';
-            cmdRemoveSubs += ` -map -0:${index}`;
+            cmdCopySubs += ' copy';
           }
         } else {
           response.infoLog += '- Removing ';
@@ -878,7 +924,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         response.infoLog += '\n';
       }
     }
-    if (cmdRemoveSubs === '' && cmdExtractSubs === '' && !bolRemoveAll) {
+    if (cmdCopySubs === '' && cmdExtractSubs === '' && !bolRemoveAll) {
       bolTranscodeSubs = false;
     }
   }
@@ -959,18 +1005,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   strFFcmd += cmdAudioMap;
 
-  if (bolTranscodeSubs) {
-    if (bolRemoveAll) {
-      strFFcmd += ' -map -0:s ';
-    } else if (bolConvertSubs) {
-      strFFcmd += ' -map 0:s -c:s srt ';
-    } else {
-      strFFcmd += ' -map 0:s -scodec copy ';
-    }
-  }
+  strFFcmd += cmdCopySubs;
 
-  strFFcmd += '-map_metadata:g -1 -metadata TNPROCESSED=1 -map_chapters 0 ';
-  strFFcmd += cmdRemoveSubs;
+  strFFcmd += ` -map_metadata:g -1 -metadata TNPROCESSED=1 -metadata TNDATE=${new Date().toISOString()} -map_chapters 0 `;
+
   strFFcmd += strTranscodeFileOptions;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
