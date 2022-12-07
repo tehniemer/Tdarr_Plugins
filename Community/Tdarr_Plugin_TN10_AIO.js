@@ -313,21 +313,21 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Audio
   const targetAudioCodec = 'aac'; // Desired Audio Codec, if you change this it will might require code changes
-  const targetAudioLanguage = [[], []];
-  targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const targetAudioBitratePerChannel = inputs.audioBitrate * 1000;
   const targetAudioChannels = inputs.audioChannels;
   const bolKeepOriginalLanguage = inputs.keepOrigLang;
   const tmdbAPI = inputs.apiKey;
+  const targetAudioLanguage = [[], []];
+  targetAudioLanguage[0] = inputs.audioLanguage.toLowerCase().replace(/\s+/g, '').split(',');
 
   // Subtitle
-  const targetSubLanguage = inputs.subLanguage.toLowerCase().replace(/\s+/g, '').split(',');
   const bolExtract = inputs.subExtract;
-  let bolRemoveUnwanted = inputs.subRmExtraLang;
+  const bolRemoveUnwanted = inputs.subRmExtraLang;
   const bolRemoveCommentary = inputs.subRmCommentary;
   const bolRemoveCC_SDH = inputs.subRmCC_SDH;
   const bolRemoveAll = inputs.subRmAll;
   const bolOverwright = inputs.subOverwrite;
+  const targetSubLanguage = inputs.subLanguage.toLowerCase().replace(/\s+/g, '').split(',');
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -463,11 +463,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   let cmdExtractSubs = '';
   let bolTranscodeSubs = false;
   let bolExtractAll = false;
-  if (bolExtract && targetSubLanguage === 'all') {
+  if (bolExtract && targetSubLanguage.indexOf('all') !== -1) {
     bolExtractAll = true;
-  }
-  if (bolRemoveAll) {
-    bolRemoveUnwanted = false;
   }
 
   // Set up required variables
@@ -873,7 +870,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Determine subtitle stream type
       response.infoLog += 'Subtitle ';
-      if (codec === 'subrip' || codec === 'mov_text') {
+      if (codec === 'subrip' || codec === 'ass' || codec === 'ssa' || codec === 'mov_text') {
         bolTextSubs = true;
         if (codec === 'mov_text' && !bolRemoveAll) {
           bolConvertSubs = true;
