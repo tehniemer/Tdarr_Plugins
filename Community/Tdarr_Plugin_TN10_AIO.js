@@ -189,7 +189,8 @@ const details = () => ({
         'true',
       ],
     },
-    tooltip: 'Remove commentary subtitle streams from file.',
+    tooltip: 'Remove commentary subtitle streams from file.\nIf extract is set to true and this to false ' +
+	  'the stream will NOT be extracted.',
   },
   {
     name: 'subRmCC_SDH',
@@ -202,7 +203,8 @@ const details = () => ({
         'true',
       ],
     },
-    tooltip: 'Remove CC/SDH subtitle streams from file.',
+    tooltip: 'Remove CC/SDH subtitle streams from file.\nIf extract is set to true and this to false ' +
+	  'the stream will NOT be extracted.',
   },
   {
     name: 'subRmAll',
