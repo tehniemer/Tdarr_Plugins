@@ -23,19 +23,6 @@ const details = () => ({
   Version: '1.01',
   Tags: 'pre-processing,ffmpeg,video,audio,subtitle,qsv,vaapi,h265,aac,configurable',
   Inputs: [{
-    name: 'reProcess',
-    type: 'boolean',
-    defaultValue: false,
-    inputUI: {
-      type: 'dropdown',
-      options: [
-        'false',
-        'true',
-      ],
-    },
-    tooltip: 'Process files again that have previously been transcoded by this plugin.',
-  },
-  {
     name: 'minBitrate4K',
     type: 'number',
     defaultValue: 20000,
@@ -266,7 +253,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const languages = require('@cospired/i18n-iso-languages');
 
   const response = {
-    processFile: true,
+    processFile: false,
     error: false,
     preset: '',
     container: '.mkv',
@@ -293,7 +280,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Process Handling
   const intStatsDays = 21; // Update stats if they are older than this many days
-  const bolReprocess = inputs.reProcess;
 
   // Video
   const targetVideoCodec = 'hevc'; // Desired Video Codec, if you change this it will might require code changes
@@ -331,63 +317,48 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  const proc = require('child_process');
-  let bolStatsAreCurrent = false;
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
-    response.processFile = false;
     response.error = true;
     response.infoLog += 'File is not a video. Exiting \n';
     return response;
   }
 
-  // If the file has already been processed we dont need to do more
-  if (file.container === 'mkv' && (file.mediaInfo.track[0].extra !== undefined &&
-      file.mediaInfo.track[0].extra.TNPROCESSED !== undefined &&
-      file.mediaInfo.track[0].extra.TNPROCESSED === '1')) {
-    if (bolReprocess) {
-      response.infoLog += 'File already processed, processing again. \n';
-    } else {
-      response.infoLog += 'File already processed! \n';
-      response.processFile = false;
-      return response;
-    }
-  }
-
   // If the existing container is mkv there is a possibility the stats were not updated during any previous transcode.
+  const proc = require('child_process');
+  let bolStatsAreCurrent = false;
+
   if (file.container === 'mkv') {
     let epochStats = Date.parse(new Date(70, 1).toISOString());
-    let statsDate = new Date(epochStats).toISOString().split('T')[0];
+    let statsDate = new Date(epochStats).toISOString().split('.')[0];
     if (
       file.ffProbeData.streams[0].tags !== undefined &&
       file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined
     ) {
       epochStats = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
       // eslint-disable-next-line prefer-destructuring
-      statsDate = new Date(epochStats).toISOString().split('T')[0];
+      statsDate = new Date(epochStats).toISOString().split('.')[0];
     }
 
-    if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
-      const epochTN = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
-      const TNDate = new Date(epochTN).toISOString().split('T')[0];
+    const epochThresh = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
+    const threshDate = new Date(epochThresh).toISOString().split('.')[0];
 
-      response.infoLog += `StatsDate: ${statsDate}, TNDate: ${TNDate}\n`;
-      if (epochStats >= epochTN) {
-        bolStatsAreCurrent = true;
-      }
-    } else {
-      const epochThresh = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
-      const threshDate = new Date(epochThresh).toISOString().split('T')[0];
+    response.infoLog += `StatsDate: ${statsDate}, StatsThres: ${threshDate}\n`;
+    if (epochStats >= epochThresh) {
+      bolStatsAreCurrent = true;
+    }
 
-      response.infoLog += `StatsDate: ${statsDate}, StatsThres: ${threshDate}\n`;
-      if (epochStats >= epochThresh) {
-        bolStatsAreCurrent = true;
-      }
+    // If the file was just processed we dont need to do it again.
+	const processTimeout = 10 * 60 * 1000;
+    const processThresh = (Date.now() - epochStats) * 1;
+    response.infoLog += `processThresh: ${processThresh}\n`;
+    if (processThresh < processTimeout) {
+      response.infoLog += 'File recently processed, skipping!.\n';
+      return response;
     }
 
     if (!bolStatsAreCurrent) {
       response.infoLog += 'Stats need to be updated! \n';
-
       try {
         proc.execSync(`mkvpropedit --add-track-statistics-tags "${currentFileName}"`);
         return response;
@@ -427,12 +398,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Determine original language if possible.
   if (bolKeepOriginalLanguage) {
-    let imdbID = '';
+    let imdbID;
     const idRegex = /(tt\d{7,8})/;
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
-    if (imdbID.length === 9 || imdbID.length === 10) {
+    if (imdbID && (imdbID.length === 9 || imdbID.length === 10)) {
       response.infoLog += `IMDb ID: ${imdbID} \n`;
 
       // Poll TMDB for information.
@@ -608,7 +579,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (videoIdx === -1) {
-    response.processFile = false;
     response.error = true;
     response.infoLog += 'No Video Track !! \n';
     return response;
@@ -729,7 +699,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (audioIdxOther !== -1) {
       targetAudioLanguage[1].push(audioIdxOther);
     } else {
-      response.processFile = false;
       response.error = true;
       response.infoLog += 'No Audio Track !! \n';
       return response;
@@ -922,7 +891,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         response.infoLog += '\n';
       }
     }
-    if (cmdCopySubs === '' && cmdExtractSubs === '' && !bolRemoveAll) {
+    if (!cmdCopySubs.includes('srt') && cmdExtractSubs === '' && !bolRemoveAll) {
       bolTranscodeSubs = false;
     }
   }
@@ -1003,8 +972,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   strFFcmd += cmdAudioMap;
   strFFcmd += cmdCopySubs;
-  strFFcmd += ` -map_metadata:g -1 -metadata TNPROCESSED=1 -metadata TNDATE=${new Date().toISOString()}`;
-  strFFcmd += ' -map_chapters 0 ';
+  strFFcmd += ' -map_metadata:g -1 -map_chapters 0 ';
   strFFcmd += strTranscodeFileOptions;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1012,9 +980,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   if (bolTranscodeVideo || bolTranscodeAudio || bolTranscodeSubs) {
     response.infoLog += 'File needs work. Transcoding. \n';
     response.preset += strFFcmd;
+    response.processFile = true;
   } else {
     response.infoLog += 'Nothing to do, skipping!\n';
-    response.processFile = false;
   }
   return response;
 };
