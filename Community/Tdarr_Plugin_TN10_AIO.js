@@ -349,7 +349,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
 
     // If the file was just processed we dont need to do it again.
-	const processTimeout = 10 * 60 * 1000;
+    const processTimeout = 10 * 60 * 1000;
     const processThresh = (Date.now() - epochStats) * 1;
     response.infoLog += `processThresh: ${processThresh}\n`;
     if (processThresh < processTimeout) {
