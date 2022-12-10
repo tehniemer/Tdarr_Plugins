@@ -347,7 +347,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
       // eslint-disable-next-line prefer-destructuring
       statsDateISO = new Date(statsDate).toISOString().split('.')[0];
-      }
+    }
     // Check if file was processed by this plugin.
     if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
       const TNDate = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
@@ -444,7 +444,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
         // Add original language to array if it doesn't already exist.
       } else if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
-          targetAudioLanguage[0].push(original3Language);
+        targetAudioLanguage[0].push(original3Language);
       }
     } else {
       response.infoLog += 'No IMDb result found.\n';
@@ -972,7 +972,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   strFFcmd += ' -y <io>';
   strFFcmd += cmdExtractSubs;
   strFFcmd += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
-  
+
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
     strFFcmd += ' -c:v:0 hevc_vaapi ';
