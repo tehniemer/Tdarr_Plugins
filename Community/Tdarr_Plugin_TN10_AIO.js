@@ -242,7 +242,6 @@ function findMediaInfoItem(file, index) {
   return -1;
 }
 
-
 // eslint-disable-next-line no-unused-vars
 const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
@@ -346,34 +345,32 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (file.ffProbeData.streams[0].tags !== undefined &&
       file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined) {
       statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
+      // eslint-disable-next-line prefer-destructuring
       statsDateISO = new Date(statsDate).toISOString().split('.')[0];
       }
-
-      if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
-        const TNDate = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
-        const TNDateISO = new Date(TNDate).toISOString().split('.')[0];
-        response.infoLog += `StatsDate: ${statsDateISO}, TNDATE: ${TNDateISO}\n`;
-        if (statsDate >= TNDate) {
-          bolStatsAreCurrent = true;
-        }
-
-        // If the file was just processed we dont need to do it again.
-        const processTimeout = 10 * 60 * 1000;
-        const processThresh = (Date.now() - TNDate) * 1;
-        if (processThresh < processTimeout) {
-          response.infoLog += 'File recently processed, skipping!.\n';
-          return response;
-        }
-
-      } else {
-        const threshDate = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
-        const threshDateISO = new Date(threshDate).toISOString().split('.')[0];
-
-        response.infoLog += `StatsDate: ${statsDateISO}, StatsThres: ${threshDateISO}\n`;
-        if (statsDate >= threshDate) {
-          bolStatsAreCurrent = true;
-        }
+    // Check if file was processed by this plugin.
+    if (file.mediaInfo.track[0].extra !== undefined && file.mediaInfo.track[0].extra.TNDATE !== undefined) {
+      const TNDate = Date.parse(file.mediaInfo.track[0].extra.TNDATE);
+      const TNDateISO = new Date(TNDate).toISOString().split('.')[0];
+      response.infoLog += `StatsDate: ${statsDateISO}, TNDATE: ${TNDateISO}\n`;
+      if (statsDate >= TNDate) {
+        bolStatsAreCurrent = true;
       }
+      // If the file was just processed we dont need to do it again.
+      const processTimeout = 10 * 60 * 1000;
+      const processThresh = (Date.now() - TNDate) * 1;
+      if (processThresh < processTimeout) {
+        response.infoLog += 'File recently processed, skipping!.\n';
+        return response;
+      }
+    } else {
+      const threshDate = Date.parse(new Date(new Date().setDate(new Date().getDate() - intStatsDays)).toISOString());
+      const threshDateISO = new Date(threshDate).toISOString().split('.')[0];
+      response.infoLog += `StatsDate: ${statsDateISO}, StatsThres: ${threshDateISO}\n`;
+      if (statsDate >= threshDate) {
+        bolStatsAreCurrent = true;
+      }
+    }
 
     if (!bolStatsAreCurrent) {
       response.infoLog += 'Stats need to be updated! \n';
@@ -419,6 +416,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Determine original language if possible.
   if (bolKeepOriginalLanguage) {
     let imdbID;
+    let original3Language;
     const idRegex = /(tt\d{7,8})/;
     const idMatch = currentFileName.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
@@ -428,14 +426,14 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Poll TMDB for information.
       const result = await axios.get(`https://api.themoviedb.org/3/find/${imdbID}?api_key=` +
-          `${tmdbAPI}&language=en-US&external_source=imdb_id`)
+        `${tmdbAPI}&language=en-US&external_source=imdb_id`)
         .then((resp) => (resp.data.movie_results.length > 0 ? resp.data.movie_results[0] : resp.data.tv_results[0]));
 
       if (result) {
         // If the original language is pulled as Chinese 'cn' is used.  iso-language expects 'zh' for Chinese.
         const originalLanguage = result.original_language === 'cn' ? 'zh' : result.original_language;
         // Change two letter to three letter code.
-        const original3Language = languages.alpha2ToAlpha3B(originalLanguage);
+        original3Language = languages.alpha2ToAlpha3B(originalLanguage);
         response.infoLog += `Original language code: ${originalLanguage}, changing to: ${original3Language}\n`;
         // Norweigen has four language codes, add them all if they don't already exist.
         if (originalLanguage === 'nb' || originalLanguage === 'nn' || originalLanguage === 'no') {
@@ -445,15 +443,15 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           }
         }
         // Add original language to array if it doesn't already exist.
-        } else if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
+      } else if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
           targetAudioLanguage[0].push(original3Language);
-        }
-      } else {
-        response.infoLog += 'No IMDb result found.\n';
       }
     } else {
-      response.infoLog += 'IMDb ID not found in filename.\n';
+      response.infoLog += 'No IMDb result found.\n';
     }
+  } else {
+    response.infoLog += 'IMDb ID not found in filename.\n';
+  }
 
   // Subtitle
   let cmdCopySubs = '';
@@ -619,7 +617,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       response.infoLog += `Subtitle stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}`;
       if (streamDisposition !== '') {
-        response.infoLog += ` - ${streamDisposition.toUpperCase().replace('.','')}`;
+        response.infoLog += ` - ${streamDisposition.toUpperCase().replace('.', '')}`;
       }
       response.infoLog += '\n';
       targetSubLanguage[1].push(i);
@@ -844,7 +842,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         let bolTextSubs = false;
         let bolConvertSubs = false;
         let bolExtractAll = false;
-  
+
         if (bolExtract && targetSubLanguage[0].indexOf('all') !== -1) bolExtractAll = true;
 
         if (file.ffProbeData.streams[streamIdx].tags !== undefined) {
@@ -858,7 +856,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         if (file.ffProbeData.streams[streamIdx].codec_name !== undefined) {
           streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
         }
-        
+
         // Determine if subtitle is of a special type
         if (file.ffProbeData.streams[streamIdx].disposition.forced || (streamTitle.includes('forced'))) {
           streamDisposition = '.forced';
@@ -951,11 +949,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (bolRemoveAll) {
       response.infoLog += 'Removing all subtitle streams.\n';
     }
-
   } else {
     response.infoLog += 'No subtitles found\n';
   }
-  
+
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // lets assemble our ffmpeg command
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -975,6 +972,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   strFFcmd += ' -y <io>';
   strFFcmd += cmdExtractSubs;
   strFFcmd += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
+  
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
     strFFcmd += ' -c:v:0 hevc_vaapi ';
