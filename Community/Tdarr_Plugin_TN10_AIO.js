@@ -10,9 +10,9 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // and Tdarr_Plugin_henk_Keep_Native_Lang_Plus_Eng which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
+  id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
-  Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
+  Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
   Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. ' +
