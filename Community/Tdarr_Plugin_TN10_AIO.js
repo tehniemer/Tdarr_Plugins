@@ -270,11 +270,11 @@ const findStreamInfo = (file, index, info) => {
   }
   // eslint-disable-next-line default-case
   switch (info) {
-  case 'language':
-    if (true) return language;
-    break;
-  case 'disposition':
-    return disposition;
+    case 'language':
+      if (language) return language;
+      break;
+    case 'disposition':
+      return disposition;
   }
 };
 
