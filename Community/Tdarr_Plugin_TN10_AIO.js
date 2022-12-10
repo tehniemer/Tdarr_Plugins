@@ -10,9 +10,9 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
 // and Tdarr_Plugin_henk_Keep_Native_Lang_Plus_Eng which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_AIO_TESTING',
   Stage: 'Pre-processing',
-  Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
+  Name: 'tehNiemer TESTING - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
   Operation: 'Transcode',
   Description: '(Re)encode files to h265 and AAC with user defined bitrate parameters, files are output to MKV. ' +
@@ -270,11 +270,11 @@ const findStreamInfo = (file, index, info) => {
   }
   // eslint-disable-next-line default-case
   switch (info) {
-    case 'language':
-      return language;
-      break;
-    case 'disposition':
-      return disposition;
+  case 'language':
+    if (true) return language;
+    break;
+  case 'disposition':
+    return disposition;
   }
 };
 
@@ -563,7 +563,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         audioBitrate = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
       }
 
-      let streamLanguage = findStreamInfo(file, i, 'language');
+      const streamLanguage = findStreamInfo(file, i, 'language');
 
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
@@ -618,8 +618,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (strStreamType === 'subtitle' || strStreamType === 'text') {
-      let streamDisposition = findStreamInfo(file, i, 'disposition');
-      let streamLanguage = findStreamInfo(file, i, 'language');
+      const streamDisposition = findStreamInfo(file, i, 'disposition');
+      const streamLanguage = findStreamInfo(file, i, 'language');
 
       response.infoLog += `Subtitle stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}`;
       if (streamDisposition !== '') {
@@ -848,9 +848,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         let bolTextSubs = false;
         let bolConvertSubs = false;
         let bolExtractAll = false;
-        let streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
-        let streamDisposition = findStreamInfo(file, streamIdx, 'disposition');
-        let streamLanguage = findStreamInfo(file, streamIdx, 'language');
+        const streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
+        const streamDisposition = findStreamInfo(file, streamIdx, 'disposition');
+        const streamLanguage = findStreamInfo(file, streamIdx, 'language');
 
         if (bolExtract && targetSubLanguage[0].indexOf('all') !== -1) bolExtractAll = true;
 
