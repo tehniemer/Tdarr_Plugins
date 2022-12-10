@@ -242,6 +242,7 @@ function findMediaInfoItem(file, index) {
   return -1;
 }
 
+
 // eslint-disable-next-line no-unused-vars
 const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
@@ -390,7 +391,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
   // Logic Controls
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   // Video
   let bolTranscodeVideo = true; // We will assume we will be transcoding
   let bolScaleVideo = false;
@@ -455,15 +455,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'IMDb ID not found in filename.\n';
     }
 
-
   // Subtitle
   let cmdCopySubs = '';
   let cmdExtractSubs = '';
   let bolTranscodeSubs = false;
-  let bolExtractAll = false;
-  if (bolExtract && targetSubLanguage.indexOf('all') !== -1) {
-    bolExtractAll = true;
-  }
 
   // Set up required variables
   let strStreamType = '';
@@ -597,10 +592,36 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
     if (strStreamType === 'subtitle' || strStreamType === 'text') {
       let streamLanguage = '???';
+      let streamTitle = '';
+      let streamDisposition = '';
+
       if (file.ffProbeData.streams[i].tags !== undefined) {
-        streamLanguage = file.ffProbeData.streams[i].tags.language.toLowerCase();
+        if (file.ffProbeData.streams[i].tags.language !== undefined) {
+          streamLanguage = file.ffProbeData.streams[i].tags.language.toLowerCase();
+        }
+        if (file.ffProbeData.streams[i].tags.title !== undefined) {
+          streamTitle = file.ffProbeData.streams[i].tags.title.toLowerCase();
+        }
       }
-      response.infoLog += `Subtitle stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}\n`;
+
+      // Determine if subtitle is of a special type
+      if (file.ffProbeData.streams[i].disposition.forced || (streamTitle.includes('forced'))) {
+        streamDisposition = '.forced';
+      } else if (file.ffProbeData.streams[i].disposition.sdh || (streamTitle.includes('sdh'))) {
+        streamDisposition = '.sdh';
+      } else if (file.ffProbeData.streams[i].disposition.cc || (streamTitle.includes('cc'))) {
+        streamDisposition = '.cc';
+      } else if (file.ffProbeData.streams[i].disposition.commentary ||
+        file.ffProbeData.streams[i].disposition.description ||
+        (streamTitle.includes('commentary')) || (streamTitle.includes('description'))) {
+        streamDisposition = '.commentary';
+      }
+
+      response.infoLog += `Subtitle stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}`;
+      if (streamDisposition !== '') {
+        response.infoLog += ` - ${streamDisposition.toUpperCase().replace('.','')}`;
+      }
+      response.infoLog += '\n';
       targetSubLanguage[1].push(i);
     }
   }
@@ -808,24 +829,27 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   if (targetSubLanguage[1].length !== 0) {
     for (let i = 0; i < targetSubLanguage[1].length; i += 1) {
       if (targetSubLanguage[1][i] !== undefined) {
-        // Set per-stream variables
+        // Set up per-stream variables
         const streamIdx = targetSubLanguage[1][i];
         let subsFile = '';
-        let streamLang = '';
+        let streamLanguage = '';
         let streamTitle = '';
         let streamCodec = '';
-        let streamDisposition = '';
         let subsLog = '';
+        let streamDisposition = '';
         let bolCommentary = false;
         let bolCC_SDH = false;
         let bolCopyStream = true;
         let bolExtractStream = true;
         let bolTextSubs = false;
         let bolConvertSubs = false;
+        let bolExtractAll = false;
+  
+        if (bolExtract && targetSubLanguage[0].indexOf('all') !== -1) bolExtractAll = true;
 
         if (file.ffProbeData.streams[streamIdx].tags !== undefined) {
           if (file.ffProbeData.streams[streamIdx].tags.language !== undefined) {
-            streamLang = file.ffProbeData.streams[streamIdx].tags.language.toLowerCase();
+            streamLanguage = file.ffProbeData.streams[streamIdx].tags.language.toLowerCase();
           }
           if (file.ffProbeData.streams[streamIdx].tags.title !== undefined) {
             streamTitle = file.ffProbeData.streams[streamIdx].tags.title.toLowerCase();
@@ -834,7 +858,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         if (file.ffProbeData.streams[streamIdx].codec_name !== undefined) {
           streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
         }
-
+        
+        // Determine if subtitle is of a special type
         if (file.ffProbeData.streams[streamIdx].disposition.forced || (streamTitle.includes('forced'))) {
           streamDisposition = '.forced';
         } else if (file.ffProbeData.streams[streamIdx].disposition.sdh || (streamTitle.includes('sdh'))) {
@@ -850,8 +875,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           bolCommentary = true;
         }
 
+        if (file.ffProbeData.streams[streamIdx].codec_name !== undefined) {
+          streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
+        }
+
         // Determine if subtitle should be extracted/copied/removed
-        if (targetSubLanguage[0].indexOf(streamLang) !== -1) {
+        if (targetSubLanguage[0].indexOf(streamLanguage) !== -1) {
           if ((bolCommentary && bolRemoveCommentary) || (bolCC_SDH && bolRemoveCC_SDH)) {
             bolCopyStream = false;
             bolExtractStream = false;
@@ -862,7 +891,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         } else if (bolRemoveUnwanted) {
           bolCopyStream = false;
         }
-        if ((targetSubLanguage[0].indexOf(streamLang) === -1) && !bolExtractAll) {
+        if ((targetSubLanguage[0].indexOf(streamLanguage) === -1) && !bolExtractAll) {
           bolExtractStream = false;
         }
 
@@ -883,17 +912,11 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
         // Build subtitle file names.
         subsFile = otherArguments.originalLibraryFile.file.split('.');
-        subsFile[subsFile.length - 2] += `.${streamLang}${streamDisposition}`;
+        subsFile[subsFile.length - 2] += `.${streamLanguage}${streamDisposition}`;
         subsFile[subsFile.length - 1] = 'srt';
         subsFile = subsFile.join('.');
 
         subsLog += `STREAM ${streamIdx} `;
-        if (streamDisposition !== '') {
-          subsLog += `: ${streamDisposition.toUpperCase().replace('.','')} `;
-        }
-        if (bolConvertSubs) {
-          subsLog += '- (mov_text); will convert to srt';
-        }
         // Copy subtitle stream
         if (bolCopyStream && !bolRemoveAll) {
           subsLog += '- Copying ';
@@ -932,6 +955,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   } else {
     response.infoLog += 'No subtitles found\n';
   }
+  
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // lets assemble our ffmpeg command
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
