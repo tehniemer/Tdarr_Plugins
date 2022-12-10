@@ -242,6 +242,42 @@ function findMediaInfoItem(file, index) {
   return -1;
 }
 
+// eslint-disable-next-line consistent-return
+const findStreamInfo = (file, index, info) => {
+  let disposition = '';
+  let language = '???';
+  let title = '';
+  if (file.ffProbeData.streams[index].tags !== undefined) {
+    if (file.ffProbeData.streams[index].tags.language !== undefined) {
+      language = file.ffProbeData.streams[index].tags.language.toLowerCase();
+    }
+    if (file.ffProbeData.streams[index].tags.title !== undefined) {
+      title = file.ffProbeData.streams[index].tags.title.toLowerCase();
+    }
+  }
+  if (file.ffProbeData.streams[index].disposition !== undefined) {
+    if (file.ffProbeData.streams[index].disposition.forced || (title.includes('forced'))) {
+      disposition = '.forced';
+    } else if (file.ffProbeData.streams[index].disposition.sdh || (title.includes('sdh'))) {
+      disposition = '.sdh';
+    } else if (file.ffProbeData.streams[index].disposition.cc || (title.includes('cc'))) {
+      disposition = '.cc';
+    } else if (file.ffProbeData.streams[index].disposition.commentary ||
+      file.ffProbeData.streams[index].disposition.description ||
+      (title.includes('commentary')) || (title.includes('description'))) {
+      disposition = '.commentary';
+    }
+  }
+  // eslint-disable-next-line default-case
+  switch (info) {
+    case 'language':
+      return language;
+      break;
+    case 'disposition':
+      return disposition;
+  }
+};
+
 // eslint-disable-next-line no-unused-vars
 const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
@@ -403,7 +439,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Audio
   let cmdAudioMap = '';
   let bolTranscodeAudio = false;
-  let bolReduceBitrate = false;
+  let bolModifyStream = false;
   let bolReduceChannels = false;
   let audioNewChannels = 0;
   let optimalAudioBitrate = 0;
@@ -489,14 +525,12 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           streamBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
         }
 
-        response.infoLog += `Video stream ${i}: ${Math.round(file.meta.Duration / 60)}min, ` +
+        response.infoLog += `Video stream ${i}: ${Math.round(file.duration / 60)}min, ` +
           `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
         response.infoLog += `, ${streamWidth} x ${streamHeight} x ${Math.round(streamFPS)}fps, ` +
           `${Math.round(streamBR / 1000)}kbps\n`;
 
-        if (videoIdxFirst === -1) {
-          videoIdxFirst = i;
-        }
+        if (videoIdxFirst === -1) videoIdxFirst = i;
 
         if (videoIdx === -1) {
           videoIdx = i;
@@ -511,9 +545,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           }
 
           // Only check here based on bitrate and video width
-          if (streamBR > curStreamBR && streamWidth >= curStreamWidth) {
-            videoIdx = i;
-          }
+          if (streamBR > curStreamBR && streamWidth >= curStreamWidth) videoIdx = i;
         }
       }
     }
@@ -531,10 +563,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         audioBitrate = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
       }
 
-      let streamLanguage = '???';
-      if (file.ffProbeData.streams[i].tags !== undefined) {
-        streamLanguage = file.ffProbeData.streams[i].tags.language.toLowerCase();
-      }
+      let streamLanguage = findStreamInfo(file, i, 'language');
 
       response.infoLog += `Audio stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}, ` +
         `${audioChannels}ch, ${Math.round(audioBitrate / 1000)}kbps `;
@@ -589,31 +618,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (strStreamType === 'subtitle' || strStreamType === 'text') {
-      let streamLanguage = '???';
-      let streamTitle = '';
-      let streamDisposition = '';
-
-      if (file.ffProbeData.streams[i].tags !== undefined) {
-        if (file.ffProbeData.streams[i].tags.language !== undefined) {
-          streamLanguage = file.ffProbeData.streams[i].tags.language.toLowerCase();
-        }
-        if (file.ffProbeData.streams[i].tags.title !== undefined) {
-          streamTitle = file.ffProbeData.streams[i].tags.title.toLowerCase();
-        }
-      }
-
-      // Determine if subtitle is of a special type
-      if (file.ffProbeData.streams[i].disposition.forced || (streamTitle.includes('forced'))) {
-        streamDisposition = '.forced';
-      } else if (file.ffProbeData.streams[i].disposition.sdh || (streamTitle.includes('sdh'))) {
-        streamDisposition = '.sdh';
-      } else if (file.ffProbeData.streams[i].disposition.cc || (streamTitle.includes('cc'))) {
-        streamDisposition = '.cc';
-      } else if (file.ffProbeData.streams[i].disposition.commentary ||
-        file.ffProbeData.streams[i].disposition.description ||
-        (streamTitle.includes('commentary')) || (streamTitle.includes('description'))) {
-        streamDisposition = '.commentary';
-      }
+      let streamDisposition = findStreamInfo(file, i, 'disposition');
+      let streamLanguage = findStreamInfo(file, i, 'language');
 
       response.infoLog += `Subtitle stream ${i}: ${streamLanguage}, ${file.ffProbeData.streams[i].codec_name}`;
       if (streamDisposition !== '') {
@@ -781,19 +787,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       optimalAudioBitrate = audioNewChannels * targetAudioBitratePerChannel;
 
       // Now what are we going todo with the audio part
-      if (audioBR > (optimalAudioBitrate * 1.1)) {
-        bolReduceBitrate = true;
-        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
-          `${Math.round(optimalAudioBitrate / 1000)}kbps for ${audioNewChannels} channels\n`;
-      }
-
-      // If the audio codec is not what we want then we should transcode
-      if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-        bolReduceBitrate = true;
-        response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
-          `${targetAudioCodec}, changing\n`;
-      }
-
       // If the source bitrate is less than out target bitrate we should not ever go up
       if (audioBR <= optimalAudioBitrate) {
         response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
@@ -805,9 +798,26 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           response.infoLog += 'stream.';
         }
         response.infoLog += '\n';
+        // eslint-disable-next-line no-restricted-globals
+      } else if (isNaN(audioBR)) {
+        // Cannot determine source bitrate
+        response.infoLog +=
+          'Cannot determine source bitrate, throwing in towel and using 48k per channel.\n';
+        optimalAudioBitrate = 48000;
+      } else {
+        bolModifyStream = true;
+        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
+          `${Math.round(optimalAudioBitrate / 1000)}kbps for ${audioNewChannels} channels\n`;
       }
 
-      if (bolReduceBitrate) {
+      // If the audio codec is not what we want then we should transcode
+      if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
+        bolModifyStream = true;
+        response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
+          `${targetAudioCodec}, changing\n`;
+      }
+
+      if (bolModifyStream) {
         cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
         bolTranscodeAudio = true;
       } else {
@@ -830,11 +840,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         // Set up per-stream variables
         const streamIdx = targetSubLanguage[1][i];
         let subsFile = '';
-        let streamLanguage = '';
-        let streamTitle = '';
-        let streamCodec = '';
         let subsLog = '';
-        let streamDisposition = '';
         let bolCommentary = false;
         let bolCC_SDH = false;
         let bolCopyStream = true;
@@ -842,40 +848,16 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         let bolTextSubs = false;
         let bolConvertSubs = false;
         let bolExtractAll = false;
+        let streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
+        let streamDisposition = findStreamInfo(file, streamIdx, 'disposition');
+        let streamLanguage = findStreamInfo(file, streamIdx, 'language');
 
         if (bolExtract && targetSubLanguage[0].indexOf('all') !== -1) bolExtractAll = true;
 
-        if (file.ffProbeData.streams[streamIdx].tags !== undefined) {
-          if (file.ffProbeData.streams[streamIdx].tags.language !== undefined) {
-            streamLanguage = file.ffProbeData.streams[streamIdx].tags.language.toLowerCase();
-          }
-          if (file.ffProbeData.streams[streamIdx].tags.title !== undefined) {
-            streamTitle = file.ffProbeData.streams[streamIdx].tags.title.toLowerCase();
-          }
-        }
-        if (file.ffProbeData.streams[streamIdx].codec_name !== undefined) {
-          streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
-        }
-
         // Determine if subtitle is of a special type
-        if (file.ffProbeData.streams[streamIdx].disposition.forced || (streamTitle.includes('forced'))) {
-          streamDisposition = '.forced';
-        } else if (file.ffProbeData.streams[streamIdx].disposition.sdh || (streamTitle.includes('sdh'))) {
-          streamDisposition = '.sdh';
-          bolCC_SDH = true;
-        } else if (file.ffProbeData.streams[streamIdx].disposition.cc || (streamTitle.includes('cc'))) {
-          streamDisposition = '.cc';
-          bolCC_SDH = true;
-        } else if (file.ffProbeData.streams[streamIdx].disposition.commentary ||
-          file.ffProbeData.streams[streamIdx].disposition.description ||
-          (streamTitle.includes('commentary')) || (streamTitle.includes('description'))) {
-          streamDisposition = '.commentary';
-          bolCommentary = true;
-        }
-
-        if (file.ffProbeData.streams[streamIdx].codec_name !== undefined) {
-          streamCodec = file.ffProbeData.streams[streamIdx].codec_name.toLowerCase();
-        }
+        if (streamDisposition === '.sdh') bolCC_SDH = true;
+        if (streamDisposition === '.cc') bolCC_SDH = true;
+        if (streamDisposition === '.commentary') bolCommentary = true;
 
         // Determine if subtitle should be extracted/copied/removed
         if (targetSubLanguage[0].indexOf(streamLanguage) !== -1) {
@@ -943,12 +925,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         }
       }
     }
-    if (cmdCopySubs !== '' || cmdExtractSubs !== '' || bolRemoveAll) {
-      bolTranscodeSubs = true;
-    }
-    if (bolRemoveAll) {
-      response.infoLog += 'Removing all subtitle streams.\n';
-    }
+    if (cmdCopySubs !== '' || cmdExtractSubs !== '' || bolRemoveAll) bolTranscodeSubs = true;
+
+    if (bolRemoveAll) response.infoLog += 'Removing all subtitle streams.\n';
   } else {
     response.infoLog += 'No subtitles found\n';
   }
@@ -980,39 +959,27 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     if (bolScaleVideo || bolUse10bit || bolTranscodeSoftwareDecode) {
       let strOptions = '';
       let strFormat = '';
-      if (bolScaleVideo) {
-        // Used when video is above our target
-        strOptions += `w=-1:h=${maxVideoHeight}`;
-      }
+      // Used when video is above our target
+      if (bolScaleVideo) strOptions += `w=-1:h=${maxVideoHeight}`;
 
-      if (strFormat.length > 0) {
-        strFormat += '=';
-      }
+      if (strFormat.length > 0) strFormat += '=';
 
-      if (bolUse10bit && !bolSource10bit) {
-        // Used to make the output 10bit
-        strFormat += 'p010';
-      }
+      // Used to make the output 10bit
+      if (bolUse10bit && !bolSource10bit) strFormat += 'p010';
 
       if (bolTranscodeSoftwareDecode) {
         if (bolSource10bit) {
-          if (strFormat.length > 0) {
-            strFormat += ',';
-          }
+          if (strFormat.length > 0) strFormat += ',';
           // Used to make it sure the software decode is in the proper pixel format
           strFormat += 'nv12|vaapi,hwupload';
         }
-        if (strFormat.length > 0) {
-          strFormat += ',';
-        }
+        if (strFormat.length > 0) strFormat += ',';
         // Used to make it use software decode if necessary
         strFormat += 'nv12,hwupload';
       }
 
       if (strFormat.length > 0) {
-        if (strOptions.length > 0) {
-          strOptions += ',';
-        }
+        if (strOptions.length > 0) strOptions += ',';
         strOptions += `format=${strFormat}`;
       }
 
