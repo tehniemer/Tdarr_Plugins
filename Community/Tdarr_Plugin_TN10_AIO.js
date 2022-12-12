@@ -418,7 +418,6 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'Stats need to be updated! \n';
       try {
         proc.execSync(`mkvpropedit --add-track-statistics-tags "${currentFileName}"`);
-//        response.FFmpegMode = false;
         response.processFile = true;
         return response;
       } catch (err) {
@@ -916,7 +915,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           }
         }
         if ((bolCopyStream && !bolRemoveAll) || bolExtractStream || bolExtractAll) {
-          response.infoLog += subsLog + '\n';
+          response.infoLog += subsLog;
+          response.infoLog += '\n';
         }
       }
     }
@@ -943,7 +943,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  strFFcmd += ' -y <io>' + cmdExtractSubs + ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
+  strFFcmd += ' -y <io>';
+  response.infoLog += cmdExtractSubs;
+  response.infoLog += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
 
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
@@ -988,8 +990,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     strFFcmd += ' -c:v:0 copy ';
   }
 
-  strFFcmd += cmdAudioMap + cmdCopySubs + ` -map_metadata:g -1 -metadata TNDATE=${new Date().toISOString()}`;
-  strFFcmd += ' -map_chapters 0 ' + strTranscodeFileOptions;
+  strFFcmd += cmdAudioMap;
+  strFFcmd += cmdCopySubs;
+  strFFcmd += ` -map_metadata:g -1 -metadata TNDATE=${new Date().toISOString()} -map_chapters 0 `;
+  strFFcmd += strTranscodeFileOptions;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
