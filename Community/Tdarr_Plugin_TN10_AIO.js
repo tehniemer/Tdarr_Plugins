@@ -222,7 +222,8 @@ const details = () => ({
   ],
 });
 
-function findMediaInfoItem(file, index) {
+// eslint-disable-next-line consistent-return
+const findMediaInfoItem = (file, index) => {
   let currMIOrder = -1;
   const strStreamType = file.ffProbeData.streams[index].codec_type.toLowerCase();
 
@@ -240,13 +241,14 @@ function findMediaInfoItem(file, index) {
     }
   }
   return -1;
-}
+};
 
 // eslint-disable-next-line consistent-return
 const findStreamInfo = (file, index, info) => {
   let disposition = '';
   let language = '???';
   let title = '';
+  let bitrate = null;
   if (file.ffProbeData.streams[index].tags !== undefined) {
     if (file.ffProbeData.streams[index].tags.language !== undefined) {
       language = file.ffProbeData.streams[index].tags.language.toLowerCase();
@@ -268,13 +270,17 @@ const findStreamInfo = (file, index, info) => {
       disposition = '.commentary';
     }
   }
+  if (file.mediaInfo.track[findMediaInfoItem(file, index)].extra !== undefined) {
+    bitrate = file.mediaInfo.track[findMediaInfoItem(file, index)].extra.FromStats_BitRate * 1;
+  }
   // eslint-disable-next-line default-case
   switch (info) {
     case 'language':
-      if (language) return language;
-      break;
+      return language;
     case 'disposition':
       return disposition;
+    case 'bitrate':
+      return bitrate;
   }
 };
 
@@ -412,7 +418,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'Stats need to be updated! \n';
       try {
         proc.execSync(`mkvpropedit --add-track-statistics-tags "${currentFileName}"`);
-        response.FFmpegMode = false;
+//        response.FFmpegMode = false;
         response.processFile = true;
         return response;
       } catch (err) {
@@ -521,9 +527,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         let streamBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
         // eslint-disable-next-line no-restricted-globals
-        if (isNaN(streamBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
-          streamBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
-        }
+        if (isNaN(streamBR)) streamBR = findStreamInfo(file, i, 'bitrate');
 
         response.infoLog += `Video stream ${i}: ${Math.round(file.duration / 60)}min, ` +
           `${file.ffProbeData.streams[i].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
@@ -540,9 +544,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           let curStreamBR = file.mediaInfo.track[MILocC].BitRate * 1;
 
           // eslint-disable-next-line no-restricted-globals
-          if (isNaN(curStreamBR) && file.mediaInfo.track[MILocC].extra !== undefined) {
-            curStreamBR = file.mediaInfo.track[MILocC].extra.FromStats_BitRate * 1;
-          }
+          if (isNaN(curStreamBR)) curStreamBR = findStreamInfo(file, i, 'bitrate');
 
           // Only check here based on bitrate and video width
           if (streamBR > curStreamBR && streamWidth >= curStreamWidth) videoIdx = i;
@@ -559,9 +561,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       audioBitrate = file.mediaInfo.track[MILoc].BitRate * 1;
 
       // eslint-disable-next-line no-restricted-globals
-      if (isNaN(audioBitrate) && file.mediaInfo.track[MILoc].extra !== undefined) {
-        audioBitrate = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
-      }
+      if (isNaN(audioBitrate)) audioBitrate = findStreamInfo(file, i, 'bitrate');
 
       const streamLanguage = findStreamInfo(file, i, 'language');
 
@@ -650,9 +650,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   let videoBR = file.mediaInfo.track[MILoc].BitRate * 1;
 
   // eslint-disable-next-line no-restricted-globals
-  if (isNaN(videoBR) && file.mediaInfo.track[MILoc].extra !== undefined) {
-    videoBR = file.mediaInfo.track[MILoc].extra.FromStats_BitRate * 1;
-  }
+  if (isNaN(videoBR)) videoBR = findStreamInfo(file, videoIdx, 'bitrate');
 
   if (
     file.ffProbeData.streams[videoIdx].profile !== undefined &&
@@ -771,9 +769,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       let audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].BitRate * 1;
 
       // eslint-disable-next-line no-restricted-globals
-      if (isNaN(audioBR) && file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].extra !== undefined) {
-        audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].extra.FromStats_BitRate * 1;
-      }
+      if (isNaN(audioBR)) audioBR = findStreamInfo(file, streamIdx, 'bitrate');
 
       if (file.ffProbeData.streams[streamIdx].channels > targetAudioChannels) {
         bolReduceChannels = true;
@@ -920,8 +916,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           }
         }
         if ((bolCopyStream && !bolRemoveAll) || bolExtractStream || bolExtractAll) {
-          response.infoLog += subsLog;
-          response.infoLog += '\n';
+          response.infoLog += subsLog + '\n';
         }
       }
     }
@@ -948,9 +943,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     }
   }
 
-  strFFcmd += ' -y <io>';
-  strFFcmd += cmdExtractSubs;
-  strFFcmd += ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
+  strFFcmd += ' -y <io>' + cmdExtractSubs + ` -max_muxing_queue_size 8000 -map 0:${videoIdx} `;
 
   if (bolTranscodeVideo) {
     // Used to make the output 10bit, I think the quotes need to be this way for ffmpeg
@@ -995,12 +988,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     strFFcmd += ' -c:v:0 copy ';
   }
 
-  strFFcmd += cmdAudioMap;
-  strFFcmd += cmdCopySubs;
-  strFFcmd += ' -map_metadata:g -1';
-  strFFcmd += ` -metadata TNDATE=${new Date().toISOString()}`;
-  strFFcmd += ' -map_chapters 0 ';
-  strFFcmd += strTranscodeFileOptions;
+  strFFcmd += cmdAudioMap + cmdCopySubs + ` -map_metadata:g -1 -metadata TNDATE=${new Date().toISOString()}`;
+  strFFcmd += ' -map_chapters 0 ' + strTranscodeFileOptions;
 
   /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
