@@ -16,8 +16,6 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // 2. Some files can not be hardware transcoded and will fail with "Impossible to convert between the formats
 //    supported by the filter 'Parsed_null_0' and the filter 'auto_scaler_0'", these seem to work with software
 //    transcoding.
-// 3. Some files suffer from poor audio quality if all audio streams are kept. Seems to only affect files with 8
-//    channel audio streams, if these are reduced to 6 channel the quality is fine.
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_AIO',
   Stage: 'Pre-processing',
