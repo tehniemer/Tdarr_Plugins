@@ -436,8 +436,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Audio
   let cmdAudioMap = '';
   let bolTranscodeAudio = false;
-  let bolChangeStream = false;
-  let bolReduceChannels = false;
+  let bolModifyStream = false;
   let audioNewChannels = 0;
   let optimalAudioBitrate = 0;
   let audioChannels = 0;
@@ -763,7 +762,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (isNaN(audioBR)) audioBR = findStreamInfo(file, streamIdx, 'bitrate');
 
       if (file.ffProbeData.streams[streamIdx].channels > targetAudioChannels) {
-        bolReduceChannels = true;
+        bolModifyStream = true;
         audioNewChannels = targetAudioChannels;
         response.infoLog += `Source audio channels: ${file.ffProbeData.streams[streamIdx].channels} ` +
           `is higher than target: ${targetAudioChannels}\n`;
@@ -792,27 +791,23 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           'Cannot determine source bitrate, throwing in towel and using 48k per channel.\n';
         optimalAudioBitrate = 48000;
       } else {
-        bolChangeStream = true;
+        bolModifyStream = true;
         response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
           `${Math.round(optimalAudioBitrate / 1000)}kbps for ${audioNewChannels} channels\n`;
       }
 
       // If the audio codec is not what we want then we should transcode
       if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-        bolChangeStream = true;
+        bolModifyStream = true;
         response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
           `${targetAudioCodec}, changing\n`;
       }
 
-      if (bolChangeStream) {
-        cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
+      if (bolModifyStream) {
+        cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} -ac ${audioNewChannels} `;
         bolTranscodeAudio = true;
       } else {
         cmdAudioMap += ` -c:a:${i} copy `;
-      }
-      if (bolReduceChannels || targetAudioLanguage[1].length > 1) {
-        cmdAudioMap += ` -ac ${audioNewChannels} `;
-        bolTranscodeAudio = true;
       }
     }
   }
