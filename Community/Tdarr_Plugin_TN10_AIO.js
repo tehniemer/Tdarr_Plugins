@@ -436,7 +436,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Audio
   let cmdAudioMap = '';
   let bolTranscodeAudio = false;
-  let bolModifyStream = false;
+  let bolChangeStream = false;
   let bolReduceChannels = false;
   let audioNewChannels = 0;
   let optimalAudioBitrate = 0;
@@ -474,10 +474,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           for (let i = 0; i < norsk.length; i += 1) {
             if (targetAudioLanguage[0].indexOf(norsk[i]) === -1) targetAudioLanguage[0].push(norsk[i]);
           }
-        }
         // Add original language to array if it doesn't already exist.
-      } else if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
-        targetAudioLanguage[0].push(original3Language);
+        } else if (targetAudioLanguage[0].indexOf(original3Language) === -1) {
+          targetAudioLanguage[0].push(original3Language);
+        }
       }
     } else {
       response.infoLog += 'No IMDb result found.\n';
@@ -564,18 +564,18 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (targetAudioLanguage[0][0] !== 'all') {
         if (streamIdx !== -1) {
           if (targetAudioLanguage[1][streamIdx] === undefined) {
-            response.infoLog += '- First audio stream';
+            response.infoLog += `- First ${streamLanguage} audio stream`;
             targetAudioLanguage[1][streamIdx] = i;
           } else {
             streamIdxChannels = file.ffProbeData.streams[targetAudioLanguage[1][streamIdx]].channels * 1;
             streamIdxBitrate = file.mediaInfo.track[findMediaInfoItem(file, targetAudioLanguage[1][streamIdx])].BitRate;
 
             if (audioChannels > streamIdxChannels) {
-              response.infoLog += '- More audio channels';
+              response.infoLog += `- More ${streamLanguage} audio channels`;
               targetAudioLanguage[1][streamIdx] = i;
             } else if (audioChannels === streamIdxChannels && (audioBitrate > streamIdxBitrate ||
                 file.ffProbeData.streams[i].disposition.default)) {
-              response.infoLog += '- Higher audio bitrate / stream tagged default';
+              response.infoLog += `- Higher ${streamLanguage} audio bitrate / stream tagged default`;
               targetAudioLanguage[1][streamIdx] = i;
             }
           }
@@ -792,25 +792,25 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           'Cannot determine source bitrate, throwing in towel and using 48k per channel.\n';
         optimalAudioBitrate = 48000;
       } else {
-        bolModifyStream = true;
+        bolChangeStream = true;
         response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
           `${Math.round(optimalAudioBitrate / 1000)}kbps for ${audioNewChannels} channels\n`;
       }
 
       // If the audio codec is not what we want then we should transcode
       if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-        bolModifyStream = true;
+        bolChangeStream = true;
         response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
           `${targetAudioCodec}, changing\n`;
       }
 
-      if (bolModifyStream) {
+      if (bolChangeStream) {
         cmdAudioMap += ` -c:a:${i} ${targetAudioCodec} -b:a ${optimalAudioBitrate} `;
         bolTranscodeAudio = true;
       } else {
         cmdAudioMap += ` -c:a:${i} copy `;
       }
-      if (bolReduceChannels) {
+      if (bolReduceChannels || targetAudioLanguage[1].length > 1) {
         cmdAudioMap += ` -ac ${audioNewChannels} `;
         bolTranscodeAudio = true;
       }
@@ -863,7 +863,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Determine subtitle stream type
       subsLog += 'USING SUBTITLE ';
-      if (streamCodec === 'subrip' || streamCodec === 'ass' || streamCodec === 'ssa' || streamCodec === 'mov_text') {
+      if (streamCodec === 'subrip' || streamCodec === 'ass' ||
+        streamCodec === 'ssa' || streamCodec === 'mov_text' ||
+        streamCodec === 'ttf') {
         bolTextSubs = true;
         subsLog += 'TEXT ';
         if (streamCodec === 'mov_text' && !bolRemoveAll) {
@@ -905,7 +907,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           cmdExtractSubs += ` -map 0:${streamIdx} "${subsFile}"`;
         }
       }
-      if ((bolCopyStream && !bolRemoveAll) || bolExtractStream || bolExtractAll) {
+      if ((bolCopyStream && !bolRemoveAll) || ((bolExtractStream || bolExtractAll) && bolTextSubs)) {
         response.infoLog += subsLog;
         response.infoLog += '\n';
       }
