@@ -408,7 +408,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       // If the file was just processed we dont need to do it again.
       const processTimeout = 6 * 60 * 60 * 1000;
       const processLast = Date.now() - TNDate;
-      const reProcessIn = Math.round(((TNDate + processTimeout) - Date.now())/(1000*60));
+      const reProcessIn = Math.round(((TNDate + processTimeout) - Date.now()) / (1000 * 60));
       if (bolReProcess && (processLast > processTimeout)) {
         response.infoLog += '- Re-Processing!\n';
       } else {
