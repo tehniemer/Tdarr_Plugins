@@ -899,7 +899,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           cmdExtractSubs += ` -map 0:${streamIdx} "${subsFile}"`;
         }
       }
-      if ((bolCopyStream && !bolRemoveAll) || ((bolExtractStream || bolExtractAll) && bolTextSubs)) {
+      if ((bolCopyStream && !bolRemoveAll) || bolExtractStream || bolExtractAll) {
         response.infoLog += subsLog;
         response.infoLog += '\n';
       }
