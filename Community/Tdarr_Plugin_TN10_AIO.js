@@ -856,9 +856,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
 
       // Determine subtitle stream type
       subsLog += 'USING SUBTITLE ';
-      if (streamCodec === 'subrip' || streamCodec === 'ass' ||
-        streamCodec === 'ssa' || streamCodec === 'mov_text' ||
-        streamCodec === 'ttf') {
+      if (streamCodec === 'ass' || streamCodec === 'mov_text' ||
+        streamCodec === 'ssa' ||streamCodec === 'subrip') {
         bolTextSubs = true;
         subsLog += 'TEXT ';
         if (streamCodec === 'mov_text' && !bolRemoveAll) {
