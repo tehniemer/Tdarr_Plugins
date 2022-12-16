@@ -784,7 +784,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
         optimalAudioBitrate = audioNewChannels * 32000;
         bolModifyStream = true;
         response.infoLog +=
-          `Cannot determine source bitrate, using 32k per channel.\n`;
+          'Cannot determine source bitrate, using 32k per channel.\n';
       // If the source bitrate is less than our optimal bitrate we should not ever go up
       } else if (audioBR <= optimalAudioBitrate) {
         response.infoLog +=
@@ -799,7 +799,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       } else {
         bolModifyStream = true;
         response.infoLog +=
-          `Source bitrate: ${Math.round(audioBR / 1000)}kbps, is high enough to transcode to optimal bitrate.\n`
+          `Source bitrate: ${Math.round(audioBR / 1000)}kbps, is high enough to transcode to optimal bitrate.\n`;
       }
 
       if (bolModifyStream) {
@@ -861,7 +861,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       // Determine subtitle stream type
       subsLog += 'USING SUBTITLE ';
       if (streamCodec === 'ass' || streamCodec === 'mov_text' ||
-        streamCodec === 'ssa' ||streamCodec === 'subrip') {
+        streamCodec === 'ssa' || streamCodec === 'subrip') {
         bolTextSubs = true;
         subsLog += 'TEXT ';
         if (streamCodec === 'mov_text' && !bolRemoveAll) {
