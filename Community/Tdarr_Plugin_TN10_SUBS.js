@@ -244,7 +244,8 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // Determine subtitle stream type
-    if (codec === 'subrip' || codec === 'mov_text') {
+    if (streamCodec === 'ass' || streamCodec === 'mov_text' ||
+      streamCodec === 'ssa' ||streamCodec === 'subrip') {
       bolTextSubs = true;
       response.infoLog += 'Text ';
     } else if (codec === 's_text/webvtt') {

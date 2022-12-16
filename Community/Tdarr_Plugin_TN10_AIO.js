@@ -345,9 +345,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Video
   const targetVideoCodec = 'hevc'; // Desired Video Codec, if you change this it might require code changes
   let bolUse10bit = inputs.re_encode10bit;
-  const targetFrameRate = 24; // Any frame rate greater than this will be adjusted
+  const targetFrameRate = 24; // This is used to adjust target bitrate for streams with higher or lower frame rates
   const maxVideoHeight = 2160; // Any thing over this size, I.E. 4K, will be reduced to this
-  const qualityAdder = 0.05; // This is a multiplier of codec compression to increase target quality
   // Since videos can have many widths and heights we need to convert to pixels
   // (WxH) to understand what we are dealing with and set a minimum bitrate
   const minVideoPixels4K = 3840 * 2160 * 0.50;
@@ -662,8 +661,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   // Check if it is already hvec, if not then we must transcode
   if (file.ffProbeData.streams[videoIdx].codec_name !== targetVideoCodec) {
     response.infoLog +=
-      `Source codex is ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
-    response.infoLog += `, need to convert to ${targetVideoCodec}${(bolUse10bit) ? '(10)' : ''}\n`;
+      `Source codec: ${file.ffProbeData.streams[videoIdx].codec_name}${(bolSource10bit) ? '(10)' : ''}`;
+    response.infoLog += `, differs from target: ${targetVideoCodec}${(bolUse10bit) ? '(10)' : ''}, changing.\n`;
     if (
       file.ffProbeData.streams[videoIdx].codec_name === 'mpeg4' ||
       (file.ffProbeData.streams[videoIdx].codec_name === 'h264' &&
@@ -673,6 +672,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       response.infoLog += 'Need to decode with software codec.\n';
     }
   }
+
+  // Determine how much to increase quality over desired minimum
+  const qualityAdder = (videoFPS / targetFrameRate) / 20;
 
   // We need to set the minimum bitrate and calculate the target codec compression
   if ((videoHeight * videoWidth) > minVideoPixels4K) {
@@ -701,29 +703,27 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
   optimalVideoBitrate = Math.round((videoHeight * videoWidth * targetFrameRate) * targetCodecCompression);
   response.infoLog += `Optimal bitrate calculated to be: ${Math.round(optimalVideoBitrate / 1000)}kbps. \n`;
 
-  if (videoBR <= optimalVideoBitrate) {
-    // We need to be careful here or else we could produce a bad quality stream
-    response.infoLog += `Source bitrate: ${Math.round(videoBR / 1000)}kbps is less than optimal!\n`;
+  // eslint-disable-next-line no-restricted-globals
+  if (isNaN(videoBR) || videoBR === 0 || videoBR === null) {
+    // Cannot determine source bitrate
+    response.infoLog +=
+      'Cannot determine source bitrate, using minimum acceptable bitrate.\n';
+    optimalVideoBitrate = minimumVideoBitrate;
+  } else if (videoBR <= optimalVideoBitrate) {
+    // If the source bitrate is less than our optimal bitrate we should not ever go up
+    optimalVideoBitrate = videoBR;
+    response.infoLog += `Source bitrate: ${Math.round(videoBR / 1000)}kbps, is less than optimal.\n`;
     if (file.ffProbeData.streams[videoIdx].codec_name === targetVideoCodec) {
       response.infoLog += `Codec is already ${targetVideoCodec}.\n`;
       if (!bolSource10bit && bolUse10bit) {
         response.infoLog += 'Transcoding to 10 bit with source bitrate.\n';
-        optimalVideoBitrate = videoBR;
       } else {
         response.infoLog += 'Copying source stream.\n';
-        optimalVideoBitrate = videoBR;
         bolTranscodeVideo = false;
       }
     } else {
       response.infoLog += 'Transcoding with a codec change using source bitrate.\n';
-      optimalVideoBitrate = videoBR;
     }
-    // eslint-disable-next-line no-restricted-globals
-  } else if (isNaN(videoBR)) {
-    // Cannot determine source bitrate
-    response.infoLog +=
-      'Cannot determine source bitrate, throwing in towel and using minimum acceptable bitrate.\n';
-    optimalVideoBitrate = minimumVideoBitrate;
   } else {
     // Source bitrate has enough meat for a decent transcode
     response.infoLog +=
@@ -754,6 +754,13 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       cmdAudioMap += ` -map 0:${streamIdx} `;
       response.infoLog += `USING AUDIO STREAM ${streamIdx}\n`;
 
+      // If the audio codec is not what we want then we should transcode
+      if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
+        bolModifyStream = true;
+        response.infoLog += `Source codec: ${file.ffProbeData.streams[streamIdx].codec_name}, differs from target: ` +
+          `${targetAudioCodec}, changing.\n`;
+      }
+
       let audioBR = file.mediaInfo.track[findMediaInfoItem(file, streamIdx)].BitRate * 1;
 
       // eslint-disable-next-line no-restricted-globals
@@ -762,19 +769,26 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       if (file.ffProbeData.streams[streamIdx].channels > targetAudioChannels) {
         bolModifyStream = true;
         audioNewChannels = targetAudioChannels;
-        response.infoLog += `Source audio channels: ${file.ffProbeData.streams[streamIdx].channels} ` +
+        response.infoLog += `Source audio channels: ${file.ffProbeData.streams[streamIdx].channels}, ` +
           `is higher than target: ${targetAudioChannels}\n`;
       } else {
         audioNewChannels = file.ffProbeData.streams[streamIdx].channels;
       }
 
+      // Now calculate the optimal bitrate
       optimalAudioBitrate = audioNewChannels * targetAudioBitratePerChannel;
 
-      // Now what are we going todo with the audio part
-      // If the source bitrate is less than out target bitrate we should not ever go up
-      if (audioBR <= optimalAudioBitrate) {
-        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is less or equal to target: ` +
-          `${Math.round(optimalAudioBitrate / 1000)}kbps. Keeping existing `;
+      // eslint-disable-next-line no-restricted-globals
+      if (isNaN(audioBR) || audioBR === 0 || audioBR === null) {
+        // Cannot determine source bitrate
+        optimalAudioBitrate = audioNewChannels * 32000;
+        bolModifyStream = true;
+        response.infoLog +=
+          `Cannot determine source bitrate, using 32k per channel.\n`;
+      // If the source bitrate is less than our optimal bitrate we should not ever go up
+      } else if (audioBR <= optimalAudioBitrate) {
+        response.infoLog +=
+          `Source bitrate: ${Math.round(audioBR / 1000)}kbps, is less than optimal. Keeping existing `;
         optimalAudioBitrate = audioBR;
         if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
           response.infoLog += 'bitrate.';
@@ -782,23 +796,10 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
           response.infoLog += 'stream.';
         }
         response.infoLog += '\n';
-        // eslint-disable-next-line no-restricted-globals
-      } else if (isNaN(audioBR)) {
-        // Cannot determine source bitrate
-        response.infoLog +=
-          'Cannot determine source bitrate, throwing in towel and using 48k per channel.\n';
-        optimalAudioBitrate = 48000;
       } else {
         bolModifyStream = true;
-        response.infoLog += `Source audio bitrate: ${Math.round(audioBR / 1000)}kbps is higher than target: ` +
-          `${Math.round(optimalAudioBitrate / 1000)}kbps for ${audioNewChannels} channels\n`;
-      }
-
-      // If the audio codec is not what we want then we should transcode
-      if (file.ffProbeData.streams[streamIdx].codec_name !== targetAudioCodec) {
-        bolModifyStream = true;
-        response.infoLog += `Audio codec: ${file.ffProbeData.streams[streamIdx].codec_name} differs from target: ` +
-          `${targetAudioCodec}, changing\n`;
+        response.infoLog +=
+          `Source bitrate: ${Math.round(audioBR / 1000)}kbps, is high enough to transcode to optimal bitrate.\n`
       }
 
       if (bolModifyStream) {
@@ -807,6 +808,9 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       } else {
         cmdAudioMap += ` -c:a:${i} copy `;
       }
+
+      response.infoLog += `Post-process audio stream ${i} will be: ${findStreamInfo(file, streamIdx, 'language')} ` +
+        `- ${Math.round(optimalAudioBitrate / 1000)}kbps, ${audioNewChannels} channels\n`;
     }
   }
 
