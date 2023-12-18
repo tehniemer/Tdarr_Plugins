@@ -3,7 +3,6 @@
 /* eslint eqeqeq: 1 */
 /* eslint no-await-in-loop: 0 */
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
-// tdarrSkipTest
 
 // Created by tehNiemer with thanks to JarBinks, drpeppershaker, and supersnellehenk for the plugins
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
