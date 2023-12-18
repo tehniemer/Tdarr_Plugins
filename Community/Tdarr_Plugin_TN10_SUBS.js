@@ -1,7 +1,6 @@
 // jshint esversion: 6
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
-// tdarrSkipTest
 
 // Created by tehNiemer with thanks to drpeppershaker for the plugin
 // Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT which served as the building blocks.
