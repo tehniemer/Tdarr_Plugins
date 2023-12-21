@@ -15,7 +15,7 @@ const tests = [
       processFile: false,
       error: false,
       preset: '',
-      container: '.mkv',
+      container: '.mp4',
       handBrakeMode: false,
       FFmpegMode: true,
       reQueueAfter: false,
