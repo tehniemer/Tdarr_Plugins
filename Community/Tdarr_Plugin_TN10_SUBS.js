@@ -211,29 +211,29 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     if (subStream.codec_name !== undefined) {
       codec = subStream.codec_name.toLowerCase();
     }
-    
+
     if (subStream.disposition !== undefined) {
       if (subStream.disposition.forced !== undefined) {
         if (subStream.disposition.forced || (title.includes('forced'))) {
           strDisposition = '.forced';
-        } 
+        }
       } else if (subStream.disposition.sdh !== undefined) {
-          if (subStream.disposition.sdh || (title.includes('sdh'))) {
+        if (subStream.disposition.sdh || (title.includes('sdh'))) {
           strDisposition = '.sdh';
           bolCC_SDH = true;
-        } 
+        }
       } else if (subStream.disposition.cc !== undefined) {
-          if (subStream.disposition.cc || (title.includes('cc'))) {
+        if (subStream.disposition.cc || (title.includes('cc'))) {
           strDisposition = '.cc';
           bolCC_SDH = true;
-        } 
+        }
       } else if (subStream.disposition.commentary !== undefined) {
-          if (subStream.disposition.commentary || (title.includes('commentary'))) {
+        if (subStream.disposition.commentary || (title.includes('commentary'))) {
           strDisposition = '.commentary';
           bolCommentary = true;
-        } 
+        }
       } else if (subStream.disposition.description !== undefined) {
-          if (subStream.disposition.description || (title.includes('description'))) {
+        if (subStream.disposition.description || (title.includes('description'))) {
           strDisposition = '.description';
           bolCommentary = true;
         }
