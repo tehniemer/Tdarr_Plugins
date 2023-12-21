@@ -222,6 +222,11 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
           strDisposition = '.sdh';
           bolCC_SDH = true;
         }
+      } else if (subStream.disposition.hearing_impaired !== undefined) {
+        if (subStream.disposition.hearing_impaired || (title.includes('hearing_impaired'))) {
+          strDisposition = '.sdh';
+          bolCC_SDH = true;
+        }
       } else if (subStream.disposition.cc !== undefined) {
         if (subStream.disposition.cc || (title.includes('cc'))) {
           strDisposition = '.cc';
@@ -234,7 +239,12 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         }
       } else if (subStream.disposition.description !== undefined) {
         if (subStream.disposition.description || (title.includes('description'))) {
-          strDisposition = '.description';
+          strDisposition = '.commentary';
+          bolCommentary = true;
+        }
+      } else if (subStream.disposition.descriptions !== undefined) {
+        if (subStream.disposition.descriptions || (title.includes('descriptions'))) {
+          strDisposition = '.commentary';
           bolCommentary = true;
         }
       }
