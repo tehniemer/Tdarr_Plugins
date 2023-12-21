@@ -127,23 +127,23 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     infoLog: '',
   };
 
-    // Check if file is a video. If it isn't then exit plugin.
-    if (file.fileMedium !== 'video') {
-      // eslint-disable-next-line no-console
-      response.processFile = false;
-      response.error = true;
-      response.infoLog += 'File is not video \n';
-      return response;
+  // Check if file is a video. If it isn't then exit plugin.
+  if (file.fileMedium !== 'video') {
+    // eslint-disable-next-line no-console
+    response.processFile = false;
+    response.error = true;
+    response.infoLog += 'File is not video \n';
+    return response;
+  }
+
+  // Make sure file has subtitles.
+  let hasSubs = false;
+  for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
+    const strStreamType = file.ffProbeData.streams[i].codec_type.toLowerCase();
+    if (strStreamType === 'subtitle' || strStreamType === 'text') {
+      hasSubs = true;
     }
-  
-    // Make sure file has subtitles.
-    let hasSubs = false;
-    for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
-      const strStreamType = file.ffProbeData.streams[i].codec_type.toLowerCase();
-      if (strStreamType === 'subtitle' || strStreamType === 'text') {
-        hasSubs = true;
-      }
-    }
+  }
 
   if (hasSubs === true) {
     response.infoLog += 'Found subs!\n';
