@@ -213,40 +213,33 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     if (subStream.disposition !== undefined) {
-      if (subStream.disposition.forced !== undefined) {
-        if (subStream.disposition.forced || (title.includes('forced'))) {
-          strDisposition = '.forced';
-        }
-      } else if (subStream.disposition.sdh !== undefined) {
-        if (subStream.disposition.sdh || (title.includes('sdh'))) {
-          strDisposition = '.sdh';
-          bolCC_SDH = true;
-        }
-      } else if (subStream.disposition.hearing_impaired !== undefined) {
-        if (subStream.disposition.hearing_impaired || (title.includes('hearing_impaired'))) {
-          strDisposition = '.sdh';
-          bolCC_SDH = true;
-        }
-      } else if (subStream.disposition.cc !== undefined) {
-        if (subStream.disposition.cc || (title.includes('cc'))) {
-          strDisposition = '.cc';
-          bolCC_SDH = true;
-        }
-      } else if (subStream.disposition.commentary !== undefined) {
-        if (subStream.disposition.commentary || (title.includes('commentary'))) {
-          strDisposition = '.commentary';
-          bolCommentary = true;
-        }
-      } else if (subStream.disposition.description !== undefined) {
-        if (subStream.disposition.description || (title.includes('description'))) {
-          strDisposition = '.commentary';
-          bolCommentary = true;
-        }
-      } else if (subStream.disposition.descriptions !== undefined) {
-        if (subStream.disposition.descriptions || (title.includes('descriptions'))) {
-          strDisposition = '.commentary';
-          bolCommentary = true;
-        }
+      if ((subStream.disposition.forced !== undefined && subStream.disposition.forced) ||
+        (title.includes('forced'))) {
+        strDisposition = '.forced';
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.sdh) ||
+        (title.includes('sdh'))) {
+        strDisposition = '.sdh';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.hearing_impaired) ||
+        (title.includes('hearing_impaired'))) {
+        strDisposition = '.sdh';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.cc) ||
+        (title.includes('cc'))) {
+        strDisposition = '.cc';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.commentary) ||
+        (title.includes('commentary'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.description) ||
+        (title.includes('description'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.descriptions) ||
+        (title.includes('descriptions'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
       }
     }
 
