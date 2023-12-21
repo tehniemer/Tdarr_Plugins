@@ -136,6 +136,15 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     return response;
   }
 
+  // Check if all inputs have been configured. If they haven't then exit plugin.
+  if (inputs.language === '' && (inputs.extract === true || inputs.rm_extra_lang === true ||
+    inputs.rm_commentary === true || inputs.rm_cc_sdh === true)) {
+    response.processFile = false;
+    response.error = true;
+    response.infoLog += 'Please configure language. Skipping this plugin. \n';
+    return response;
+  }
+
   // Make sure file has subtitles.
   let hasSubs = false;
   for (let i = 0; i < file.ffProbeData.streams.length; i += 1) {
@@ -150,15 +159,6 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   } else {
     response.processFile = false;
     response.infoLog += 'No subs in file, skipping!\n';
-    return response;
-  }
-
-  // Check if all inputs have been configured. If they haven't then exit plugin.
-  if (inputs.language === '' && (inputs.extract === true || inputs.rm_extra_lang === true ||
-    inputs.rm_commentary === true || inputs.rm_cc_sdh === true)) {
-    response.processFile = false;
-    response.error = true;
-    response.infoLog += 'Please configure language. Skipping this plugin. \n';
     return response;
   }
 
