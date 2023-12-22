@@ -61,7 +61,7 @@ const tests = [
       FFmpegMode: true,
       reQueueAfter: false,
       infoLog: 'Found subs!\n'
-      + 'Text stream 6: fre Stream is unwanted, removing. \n',
+      + 'Text stream 6: fre. Stream is unwanted, removing. \n',
     },
   },
   {
@@ -88,8 +88,8 @@ const tests = [
       FFmpegMode: true,
       reQueueAfter: false,
       infoLog: 'Found subs!\n'
-      + 'Text stream 6: en Stream is unwanted, removing. \n'
-      + 'Text stream 7: fre.forced Stream will be copied. Stream will be extracted to file. \n',
+      + 'Text stream 6: en. Stream is unwanted, removing. \n'
+      + 'Text stream 7: fre.forced. Stream will be copied. Stream will be extracted to file. \n',
     },
   },
 ];
