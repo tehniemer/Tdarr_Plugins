@@ -109,11 +109,11 @@ const details = () => ({
   ],
 });
 
-// eslint-disable-next-line no-unused-vars
-const plugin = (file, librarySettings, inputs) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const plugin = (file, librarySettings, inputs, otherArguments) => {
   const lib = require('../methods/lib')();
   const fs = require('fs');
-  // eslint-disable-next-line no-unused-vars,no-param-reassign
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   inputs = lib.loadDefaultValues(inputs, details);
 
   const response = {
@@ -129,7 +129,7 @@ const plugin = (file, librarySettings, inputs) => {
 
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line @typescript-eslint/no-console
     response.processFile = false;
     response.error = true;
     response.infoLog += 'File is not video \n';
