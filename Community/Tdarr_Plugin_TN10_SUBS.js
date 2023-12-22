@@ -110,7 +110,7 @@ const details = () => ({
 });
 
 // eslint-disable-next-line no-unused-vars
-const plugin = (file, librarySettings, inputs, otherArguments) => {
+const plugin = (file, librarySettings, inputs) => {
   const lib = require('../methods/lib')();
   const fs = require('fs');
   // eslint-disable-next-line no-unused-vars,no-param-reassign
@@ -188,7 +188,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   for (let i = 0; i < subsArr.length; i += 1) {
     // Set per-stream variables
     const subStream = subsArr[i];
-    //const { originalLibraryFile } = otherArguments;
+    // const { originalLibraryFile } = otherArguments;
     let subsFile = '';
     let lang = '';
     let title = '';

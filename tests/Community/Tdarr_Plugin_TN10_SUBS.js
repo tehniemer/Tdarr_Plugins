@@ -61,8 +61,8 @@ const tests = [
       handBrakeMode: false,
       FFmpegMode: true,
       reQueueAfter: false,
-      infoLog: 'Found subs!\n' +
-        'Text stream 6: fre. Stream is unwanted, removing. \n',
+      infoLog: 'Found subs!\n'
+      + 'Text stream 6: fre. Stream is unwanted, removing. \n',
     },
   },
   {
@@ -87,8 +87,8 @@ const tests = [
       handBrakeMode: false,
       FFmpegMode: true,
       reQueueAfter: false,
-      infoLog: 'Found subs!\n' +
-        'Text stream 6: fre. Stream is unwanted, removing. \n',
+      infoLog: 'Found subs!\n'
+      + 'Text stream 6: fre. Stream is unwanted, removing. \n',
     },
   },
 ];
