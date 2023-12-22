@@ -50,7 +50,7 @@ const tests = [
         language: 'eng',
       },
       otherArguments: {
-        originalLibraryFile:_.cloneDeep(require('../sampleData/media/sampleH264_2.json')),
+        originalLibraryFile: _.cloneDeep(require('../sampleData/media/sampleH264_2.json')),
       },
     },
     output: {
