@@ -49,7 +49,9 @@ const tests = [
       inputs: {
         language: 'eng',
       },
-      otherArguments: {},
+      otherArguments: {
+        originalLibraryFile:_.cloneDeep(require('../sampleData/media/sampleH264_2.json')),
+      },
     },
     output: {
       processFile: true,
