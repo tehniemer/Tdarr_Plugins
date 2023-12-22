@@ -280,7 +280,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
     if (subsArr.length !== 0) {
       const { index } = subStream;
-      response.infoLog += `stream ${index}: ${lang}${strDisposition}. `;
+      response.infoLog += `stream ${index}: ${lang}${strDisposition}.srt `;
       if (!bolRemoveAll) {
         // Copy subtitle stream
         if (bolCopyStream) {
