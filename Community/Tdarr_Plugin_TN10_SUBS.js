@@ -188,7 +188,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   for (let i = 0; i < subsArr.length; i += 1) {
     // Set per-stream variables
     const subStream = subsArr[i];
-    const { originalLibraryFile } = otherArguments;
+    //const { originalLibraryFile } = otherArguments;
     let subsFile = '';
     let lang = '';
     let title = '';
@@ -272,7 +272,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // Build subtitle file names.
-    subsFile = originalLibraryFile.file;
+    subsFile = file.file;
     subsFile = subsFile.split('.');
     subsFile[subsFile.length - 2] += `.${lang}${strDisposition}`;
     subsFile[subsFile.length - 1] = 'srt';

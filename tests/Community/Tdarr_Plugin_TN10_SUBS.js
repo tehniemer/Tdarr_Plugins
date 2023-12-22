@@ -48,10 +48,10 @@ const tests = [
       librarySettings: {},
       inputs: {
         language: 'eng',
+        extract: 'true',
+        rm_extra_lang: 'true',
       },
-      otherArguments: {
-        originalLibraryFile: _.cloneDeep(require('../sampleData/media/sampleH264_2.json')),
-      },
+      otherArguments: {},
     },
     output: {
       processFile: true,
@@ -61,8 +61,34 @@ const tests = [
       handBrakeMode: false,
       FFmpegMode: true,
       reQueueAfter: false,
-      infoLog: 'Found subs!\n'
-      + 'Text stream 6: fre. Stream is unwanted, removing. \n',
+      infoLog: 'Found subs!\n' +
+        'Text stream 6: fre. Stream is unwanted, removing. \n',
+    },
+  },
+  {
+    input: {
+      file: (() => {
+        const file = _.cloneDeep(require('../sampleData/media/sampleH264_3.json'));
+        file.ffProbeData.streams[7].disposition.forced = 1;
+        return file;
+      })(),
+      librarySettings: {},
+      inputs: {
+        language: 'fre',
+        rm_extra_lang: 'true',
+      },
+      otherArguments: {},
+    },
+    output: {
+      processFile: true,
+      error: false,
+      preset: '-y <io> -map 0 -c copy -map -0:6',
+      container: '.mkv',
+      handBrakeMode: false,
+      FFmpegMode: true,
+      reQueueAfter: false,
+      infoLog: 'Found subs!\n' +
+        'Text stream 6: fre. Stream is unwanted, removing. \n',
     },
   },
 ];
