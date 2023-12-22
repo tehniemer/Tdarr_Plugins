@@ -129,7 +129,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
 
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
-    // eslint-disable-next-line @typescript-eslint/no-console
+    // eslint-disable-next-line no-console
     response.processFile = false;
     response.error = true;
     response.infoLog += 'File is not video \n';
