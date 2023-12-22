@@ -61,7 +61,7 @@ const tests = [
       FFmpegMode: true,
       reQueueAfter: false,
       infoLog: 'Found subs!\n'
-      + 'Text stream 6: fre.srt Stream is unwanted, removing. \n',
+      + 'Text stream 6: fre Stream is unwanted, removing. \n',
     },
   },
   {
@@ -82,14 +82,14 @@ const tests = [
     output: {
       processFile: true,
       error: false,
-      preset: '-y <io> -map 0 -c copy -map -0:6',
+      preset: '-y <io> -map 0:7 "C:/Transcode/Source Folder/h264.fre.forced.srt" -map 0 -c copy -map -0:6',
       container: '.mkv',
       handBrakeMode: false,
       FFmpegMode: true,
       reQueueAfter: false,
       infoLog: 'Found subs!\n'
-      + 'Text stream 6: en.srt Stream is unwanted, removing. \n'
-      + 'Text stream 7: fre.forced.srt Stream will be copied. Stream will be extracted to file. \n',
+      + 'Text stream 6: en Stream is unwanted, removing. \n'
+      + 'Text stream 7: fre.forced Stream will be copied. Stream will be extracted to file. \n',
     },
   },
 ];
