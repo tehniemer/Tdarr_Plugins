@@ -1,8 +1,11 @@
 /* eslint max-len: 0 */
+/* eslint-disable import/no-unresolved */
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 
 const _ = require('lodash');
 const run = require('../helpers/run');
+const axios = require('axios').default;
+const languages = require('@cospired/i18n-iso-languages');
 
 const tests = [
   {
