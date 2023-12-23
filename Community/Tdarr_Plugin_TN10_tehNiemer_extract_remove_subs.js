@@ -222,7 +222,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
         bolCC_SDH = true;
       } else if ((subStream.disposition.forced !== undefined && subStream.disposition.hearing_impaired) ||
         (title.includes('hearing_impaired'))) {
-        strDisposition = '.sdh';
+        strDisposition = '.hi';
         bolCC_SDH = true;
       } else if ((subStream.disposition.forced !== undefined && subStream.disposition.cc) ||
         (title.includes('cc'))) {
