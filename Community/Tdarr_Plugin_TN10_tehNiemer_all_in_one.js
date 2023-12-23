@@ -14,6 +14,7 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // 2. Some files can not be hardware transcoded and will fail with "Impossible to convert between the formats
 //    supported by the filter 'Parsed_null_0' and the filter 'auto_scaler_0'", these seem to work with software
 //    transcoding.
+
 const details = () => ({
   id: 'Tdarr_Plugin_TN10_tehNiemer_all_in_one',
   Stage: 'Pre-processing',
