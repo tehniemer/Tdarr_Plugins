@@ -285,26 +285,26 @@ const findStreamInfo = (file, index, info) => {
     }
   }
   if (file.ffProbeData.streams[index].disposition !== undefined) {
-    if (file.ffProbeData.streams[index].disposition.forced !== undefined &&
-      file.ffProbeData.streams[index].disposition.forced || (title.includes('forced'))) {
+    if ((file.ffProbeData.streams[index].disposition.forced !== undefined &&
+      file.ffProbeData.streams[index].disposition.forced) || (title.includes('forced'))) {
       disposition = '.forced';
-    } else if (file.ffProbeData.streams[index].disposition.sdh !== undefined &&
-      file.ffProbeData.streams[index].disposition.sdh || (title.includes('sdh'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.sdh !== undefined &&
+      file.ffProbeData.streams[index].disposition.sdh) || (title.includes('sdh'))) {
       disposition = '.sdh';
-    } else if (file.ffProbeData.streams[index].disposition.hearing_impared !== undefined &&
-      file.ffProbeData.streams[index].disposition.hearing_impared || (title.includes('hearing_impared'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.hearing_impared !== undefined &&
+      file.ffProbeData.streams[index].disposition.hearing_impared) || (title.includes('hearing_impared'))) {
       disposition = '.hi';
-    } else if (file.ffProbeData.streams[index].disposition.cc !== undefined &&
-      file.ffProbeData.streams[index].disposition.cc || (title.includes('cc'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.cc !== undefined &&
+      file.ffProbeData.streams[index].disposition.cc) || (title.includes('cc'))) {
       disposition = '.cc';
-    } else if (file.ffProbeData.streams[index].disposition.commentary !== undefined &&
-      file.ffProbeData.streams[index].disposition.commentary || (title.includes('commentary'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.commentary !== undefined &&
+      file.ffProbeData.streams[index].disposition.commentary) || (title.includes('commentary'))) {
       disposition = '.commentary';
-    } else if (file.ffProbeData.streams[index].disposition.description !== undefined &&
-      file.ffProbeData.streams[index].disposition.description || (title.includes('description'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.description !== undefined &&
+      file.ffProbeData.streams[index].disposition.description) || (title.includes('description'))) {
       disposition = '.commentary';
-    } else if (file.ffProbeData.streams[index].disposition.descriptions !== undefined &&
-      file.ffProbeData.streams[index].disposition.descriptions || (title.includes('descriptions'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.descriptions !== undefined &&
+      file.ffProbeData.streams[index].disposition.descriptions) || (title.includes('descriptions'))) {
       disposition = '.commentary';
     }
   }
@@ -322,12 +322,12 @@ const findStreamInfo = (file, index, info) => {
   }
 };
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
   // eslint-disable-next-line global-require
   const lib = require('../methods/lib')();
-  // eslint-disable-next-line no-unused-vars,no-param-reassign
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   inputs = lib.loadDefaultValues(inputs, details);
   // eslint-disable-next-line import/no-unresolved
   const axios = require('axios').default;
