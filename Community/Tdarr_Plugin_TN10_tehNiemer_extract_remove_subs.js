@@ -5,7 +5,7 @@
 // Created by tehNiemer with thanks to drpeppershaker for the plugin
 // Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_SUBS',
+  id: 'Tdarr_Plugin_TN10_tehNiemer_extract_remove_subs',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - Extract/Copy/Remove embedded subtitles',
   Type: 'Subtitle',
