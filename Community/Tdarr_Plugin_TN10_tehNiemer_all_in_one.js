@@ -15,7 +15,7 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 //    supported by the filter 'Parsed_null_0' and the filter 'auto_scaler_0'", these seem to work with software
 //    transcoding.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_tehNiemer_all_in_one',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
@@ -285,15 +285,26 @@ const findStreamInfo = (file, index, info) => {
     }
   }
   if (file.ffProbeData.streams[index].disposition !== undefined) {
-    if (file.ffProbeData.streams[index].disposition.forced || (title.includes('forced'))) {
+    if (file.ffProbeData.streams[index].disposition.forced !== undefined &&
+      file.ffProbeData.streams[index].disposition.forced || (title.includes('forced'))) {
       disposition = '.forced';
-    } else if (file.ffProbeData.streams[index].disposition.sdh || (title.includes('sdh'))) {
+    } else if (file.ffProbeData.streams[index].disposition.sdh !== undefined &&
+      file.ffProbeData.streams[index].disposition.sdh || (title.includes('sdh'))) {
       disposition = '.sdh';
-    } else if (file.ffProbeData.streams[index].disposition.cc || (title.includes('cc'))) {
+    } else if (file.ffProbeData.streams[index].disposition.hearing_impared !== undefined &&
+      file.ffProbeData.streams[index].disposition.hearing_impared || (title.includes('hearing_impared'))) {
+      disposition = '.hi';
+    } else if (file.ffProbeData.streams[index].disposition.cc !== undefined &&
+      file.ffProbeData.streams[index].disposition.cc || (title.includes('cc'))) {
       disposition = '.cc';
-    } else if (file.ffProbeData.streams[index].disposition.commentary ||
-      file.ffProbeData.streams[index].disposition.description ||
-      (title.includes('commentary')) || (title.includes('description'))) {
+    } else if (file.ffProbeData.streams[index].disposition.commentary !== undefined &&
+      file.ffProbeData.streams[index].disposition.commentary || (title.includes('commentary'))) {
+      disposition = '.commentary';
+    } else if (file.ffProbeData.streams[index].disposition.description !== undefined &&
+      file.ffProbeData.streams[index].disposition.description || (title.includes('description'))) {
+      disposition = '.commentary';
+    } else if (file.ffProbeData.streams[index].disposition.descriptions !== undefined &&
+      file.ffProbeData.streams[index].disposition.descriptions || (title.includes('descriptions'))) {
       disposition = '.commentary';
     }
   }
@@ -487,7 +498,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     let imdbID;
     let original3Language;
     const idRegex = /(tt\d{7,8})/;
-    const idMatch = otherArguments.originalLibraryFile.file.match(idRegex);
+    const idMatch = file.file.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
     if (imdbID && (imdbID.length === 9 || imdbID.length === 10)) {
@@ -931,7 +942,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       // Build subtitle file names.
-      subsFile = otherArguments.originalLibraryFile.file.split('.');
+      subsFile = file.file.split('.');
       subsFile[subsFile.length - 2] += `.${streamLanguage}${streamDisposition}`;
       subsFile[subsFile.length - 1] = 'srt';
       subsFile = subsFile.join('.');
