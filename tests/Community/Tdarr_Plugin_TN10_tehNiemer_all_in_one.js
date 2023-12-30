@@ -1,4 +1,6 @@
 /* eslint max-len: 0 */
+import axios from 'axios';
+
 const _ = require('lodash');
 const run = require('../helpers/run');
 
