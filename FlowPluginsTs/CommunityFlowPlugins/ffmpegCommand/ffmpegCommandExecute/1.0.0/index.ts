@@ -6,6 +6,7 @@ import {
 } from '../../../../FlowHelpers/1.0.0/interfaces/interfaces';
 import { CLI } from '../../../../FlowHelpers/1.0.0/cliUtils';
 import { getFileName, getPluginWorkDir } from '../../../../FlowHelpers/1.0.0/fileUtils';
+import { checkFfmpegCommandInit } from '../../../../FlowHelpers/1.0.0/interfaces/flowUtils';
 
 /* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
 const details = (): IpluginDetails => ({
@@ -68,6 +69,8 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   args.inputs = lib.loadDefaultValues(args.inputs, details);
 
+  checkFfmpegCommandInit(args);
+
   const cliArgs: string[] = [];
 
   cliArgs.push('-y');
@@ -90,6 +93,11 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     }
     return !stream.removed;
   });
+
+  if (streams.length === 0) {
+    args.jobLog('No streams mapped for new file');
+    throw new Error('No streams mapped for new file');
+  }
 
   for (let i = 0; i < streams.length; i += 1) {
     const stream = streams[i];
@@ -163,6 +171,7 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
     inputFileObj: args.inputFileObj,
     logFullCliOutput: args.logFullCliOutput,
     updateWorker: args.updateWorker,
+    args,
   });
 
   const res = await cli.runCli();
@@ -173,6 +182,9 @@ const plugin = async (args: IpluginInputArgs): Promise<IpluginOutputArgs> => {
   }
 
   args.logOutcome('tSuc');
+
+  // eslint-disable-next-line no-param-reassign
+  args.variables.ffmpegCommand.init = false;
 
   return {
     outputFileObj: {
