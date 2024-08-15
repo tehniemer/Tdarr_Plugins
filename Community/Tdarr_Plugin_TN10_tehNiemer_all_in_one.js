@@ -3,7 +3,6 @@
 /* eslint eqeqeq: 1 */
 /* eslint no-await-in-loop: 0 */
 module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
-// tdarrSkipTest
 
 // Created by tehNiemer with thanks to JarBinks, drpeppershaker, and supersnellehenk for the plugins
 // Tdarr_Plugin_JB69_JBHEVCQSV_MinimalFile, Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT
@@ -15,8 +14,9 @@ module.exports.dependencies = ['axios@0.27.2', '@cospired/i18n-iso-languages'];
 // 2. Some files can not be hardware transcoded and will fail with "Impossible to convert between the formats
 //    supported by the filter 'Parsed_null_0' and the filter 'auto_scaler_0'", these seem to work with software
 //    transcoding.
+
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_AIO',
+  id: 'Tdarr_Plugin_TN10_tehNiemer_all_in_one',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - AIO: convert video, audio, and subtitles - user configurable',
   Type: 'Video',
@@ -286,15 +286,26 @@ const findStreamInfo = (file, index, info) => {
     }
   }
   if (file.ffProbeData.streams[index].disposition !== undefined) {
-    if (file.ffProbeData.streams[index].disposition.forced || (title.includes('forced'))) {
+    if ((file.ffProbeData.streams[index].disposition.forced !== undefined &&
+      file.ffProbeData.streams[index].disposition.forced) || (title.includes('forced'))) {
       disposition = '.forced';
-    } else if (file.ffProbeData.streams[index].disposition.sdh || (title.includes('sdh'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.sdh !== undefined &&
+      file.ffProbeData.streams[index].disposition.sdh) || (title.includes('sdh'))) {
       disposition = '.sdh';
-    } else if (file.ffProbeData.streams[index].disposition.cc || (title.includes('cc'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.hearing_impared !== undefined &&
+      file.ffProbeData.streams[index].disposition.hearing_impared) || (title.includes('hearing_impared'))) {
+      disposition = '.hi';
+    } else if ((file.ffProbeData.streams[index].disposition.cc !== undefined &&
+      file.ffProbeData.streams[index].disposition.cc) || (title.includes('cc'))) {
       disposition = '.cc';
-    } else if (file.ffProbeData.streams[index].disposition.commentary ||
-      file.ffProbeData.streams[index].disposition.description ||
-      (title.includes('commentary')) || (title.includes('description'))) {
+    } else if ((file.ffProbeData.streams[index].disposition.commentary !== undefined &&
+      file.ffProbeData.streams[index].disposition.commentary) || (title.includes('commentary'))) {
+      disposition = '.commentary';
+    } else if ((file.ffProbeData.streams[index].disposition.description !== undefined &&
+      file.ffProbeData.streams[index].disposition.description) || (title.includes('description'))) {
+      disposition = '.commentary';
+    } else if ((file.ffProbeData.streams[index].disposition.descriptions !== undefined &&
+      file.ffProbeData.streams[index].disposition.descriptions) || (title.includes('descriptions'))) {
       disposition = '.commentary';
     }
   }
@@ -312,12 +323,12 @@ const findStreamInfo = (file, index, info) => {
   }
 };
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = async (file, librarySettings, inputs, otherArguments) => {
   const fs = require('fs');
   // eslint-disable-next-line global-require
   const lib = require('../methods/lib')();
-  // eslint-disable-next-line no-unused-vars,no-param-reassign
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   inputs = lib.loadDefaultValues(inputs, details);
   // eslint-disable-next-line import/no-unresolved
   const axios = require('axios').default;
@@ -400,8 +411,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     let TNDate;
     let statsDate = Date.parse(new Date(70, 1).toISOString());
     if (file.ffProbeData.streams[0].tags !== undefined &&
-      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined) {
-      statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
+      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC'] !== undefined) {
+      statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC']} GMT`);
       const statsDateISO = new Date(statsDate).toISOString().split('.')[0];
       response.infoLog += `Date file statistics were updated: ${statsDateISO}\n`;
     }
@@ -488,7 +499,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     let imdbID;
     let original3Language;
     const idRegex = /(tt\d{7,8})/;
-    const idMatch = otherArguments.originalLibraryFile.file.match(idRegex);
+    const idMatch = file.file.match(idRegex);
     // eslint-disable-next-line prefer-destructuring
     if (idMatch) imdbID = idMatch[1];
     if (imdbID && (imdbID.length === 9 || imdbID.length === 10)) {
@@ -932,7 +943,7 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
       }
 
       // Build subtitle file names.
-      subsFile = otherArguments.originalLibraryFile.file.split('.');
+      subsFile = file.file.split('.');
       subsFile[subsFile.length - 2] += `.${streamLanguage}${streamDisposition}`;
       subsFile[subsFile.length - 1] = 'srt';
       subsFile = subsFile.join('.');
