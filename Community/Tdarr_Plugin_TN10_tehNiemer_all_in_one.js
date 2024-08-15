@@ -411,8 +411,8 @@ const plugin = async (file, librarySettings, inputs, otherArguments) => {
     let TNDate;
     let statsDate = Date.parse(new Date(70, 1).toISOString());
     if (file.ffProbeData.streams[0].tags !== undefined &&
-      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng'] !== undefined) {
-      statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC-eng']} GMT`);
+      file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC'] !== undefined) {
+      statsDate = Date.parse(`${file.ffProbeData.streams[0].tags['_STATISTICS_WRITING_DATE_UTC']} GMT`);
       const statsDateISO = new Date(statsDate).toISOString().split('.')[0];
       response.infoLog += `Date file statistics were updated: ${statsDateISO}\n`;
     }
