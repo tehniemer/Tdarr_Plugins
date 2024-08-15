@@ -1,12 +1,11 @@
 // jshint esversion: 6
 /* eslint operator-linebreak: ["error", "after"] */
 /* eslint eqeqeq: 1 */
-// tdarrSkipTest
 
 // Created by tehNiemer with thanks to drpeppershaker for the plugin
 // Tdarr_Plugin_rr01_drpeppershaker_extract_subs_to_SRT which served as the building blocks.
 const details = () => ({
-  id: 'Tdarr_Plugin_TN10_SUBS',
+  id: 'Tdarr_Plugin_TN10_tehNiemer_extract_remove_subs',
   Stage: 'Pre-processing',
   Name: 'tehNiemer - Extract/Copy/Remove embedded subtitles',
   Type: 'Subtitle',
@@ -110,11 +109,11 @@ const details = () => ({
   ],
 });
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const plugin = (file, librarySettings, inputs, otherArguments) => {
   const lib = require('../methods/lib')();
   const fs = require('fs');
-  // eslint-disable-next-line no-unused-vars,no-param-reassign
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,no-param-reassign
   inputs = lib.loadDefaultValues(inputs, details);
 
   const response = {
@@ -128,21 +127,21 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     infoLog: '',
   };
 
-  // Check if all inputs have been configured. If they haven't then exit plugin.
-  if (inputs.language === '' && (inputs.extract === true || inputs.rm_extra_lang === true ||
-    inputs.rm_commentary === true || inputs.rm_cc_sdh === true)) {
-    response.processFile = false;
-    response.error = true;
-    response.infoLog += 'Please configure language. Skipping this plugin. \n';
-    return response;
-  }
-
   // Check if file is a video. If it isn't then exit plugin.
   if (file.fileMedium !== 'video') {
     // eslint-disable-next-line no-console
     response.processFile = false;
     response.error = true;
     response.infoLog += 'File is not video \n';
+    return response;
+  }
+
+  // Check if all inputs have been configured. If they haven't then exit plugin.
+  if (inputs.language === '' && (inputs.extract === true || inputs.rm_extra_lang === true ||
+    inputs.rm_commentary === true || inputs.rm_cc_sdh === true)) {
+    response.processFile = false;
+    response.error = true;
+    response.infoLog += 'Please configure language. Skipping this plugin. \n';
     return response;
   }
 
@@ -189,7 +188,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
   for (let i = 0; i < subsArr.length; i += 1) {
     // Set per-stream variables
     const subStream = subsArr[i];
-    const { originalLibraryFile } = otherArguments;
+    // const { originalLibraryFile } = otherArguments;
     let subsFile = '';
     let lang = '';
     let title = '';
@@ -213,18 +212,35 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
       codec = subStream.codec_name.toLowerCase();
     }
 
-    if (subStream.disposition.forced || (title.includes('forced'))) {
-      strDisposition = '.forced';
-    } else if (subStream.disposition.sdh || (title.includes('sdh'))) {
-      strDisposition = '.sdh';
-      bolCC_SDH = true;
-    } else if (subStream.disposition.cc || (title.includes('cc'))) {
-      strDisposition = '.cc';
-      bolCC_SDH = true;
-    } else if (subStream.disposition.commentary || subStream.disposition.description ||
-      (title.includes('commentary')) || (title.includes('description'))) {
-      strDisposition = '.commentary';
-      bolCommentary = true;
+    if (subStream.disposition !== undefined) {
+      if ((subStream.disposition.forced !== undefined && subStream.disposition.forced) ||
+        (title.includes('forced'))) {
+        strDisposition = '.forced';
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.sdh) ||
+        (title.includes('sdh'))) {
+        strDisposition = '.sdh';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.hearing_impaired) ||
+        (title.includes('hearing_impaired'))) {
+        strDisposition = '.hi';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.cc) ||
+        (title.includes('cc'))) {
+        strDisposition = '.cc';
+        bolCC_SDH = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.commentary) ||
+        (title.includes('commentary'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.description) ||
+        (title.includes('description'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
+      } else if ((subStream.disposition.forced !== undefined && subStream.disposition.descriptions) ||
+        (title.includes('descriptions'))) {
+        strDisposition = '.commentary';
+        bolCommentary = true;
+      }
     }
 
     // Determine if subtitle should be extracted/copied/removed
@@ -256,7 +272,7 @@ const plugin = (file, librarySettings, inputs, otherArguments) => {
     }
 
     // Build subtitle file names.
-    subsFile = originalLibraryFile.file;
+    subsFile = file.file;
     subsFile = subsFile.split('.');
     subsFile[subsFile.length - 2] += `.${lang}${strDisposition}`;
     subsFile[subsFile.length - 1] = 'srt';
