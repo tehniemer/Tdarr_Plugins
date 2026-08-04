@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -45,10 +45,42 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.plugin = exports.details = void 0;
+exports.plugin = exports.parseRunCliArguments = exports.details = void 0;
 var cliUtils_1 = require("../../../../FlowHelpers/1.0.0/cliUtils");
 var fileUtils_1 = require("../../../../FlowHelpers/1.0.0/fileUtils");
-/* eslint no-plusplus: ["error", { "allowForLoopAfterthoughts": true }] */
+var parseRunCliArguments = function (cliPath, cliArguments, parseArgsStringToArgv) {
+    var normalizedCliPath = cliPath.replace(/\\/g, '/');
+    var cliName = normalizedCliPath
+        .slice(normalizedCliPath.lastIndexOf('/') + 1)
+        .toLowerCase()
+        .replace(/\.exe$/i, '');
+    var shellCommandArgMatch = null;
+    if (cliName === 'bash' || cliName === 'sh') {
+        shellCommandArgMatch = cliArguments.match(/(^|\s)(-[^-\s]*c[^\s]*)(\s+)([\s\S]*)$/);
+    }
+    else if (cliName === 'powershell' || cliName === 'pwsh') {
+        shellCommandArgMatch = cliArguments.match(/(^|\s)(-command|-c)(\s+)([\s\S]*)$/i);
+    }
+    if (!shellCommandArgMatch) {
+        return __spreadArray([], parseArgsStringToArgv(cliArguments, '', ''), true);
+    }
+    var prefixArgsString = cliArguments.slice(0, shellCommandArgMatch.index).trim();
+    var prefixArgs = prefixArgsString
+        ? parseArgsStringToArgv(prefixArgsString, '', '')
+        : [];
+    var commandArgsString = shellCommandArgMatch[4].trim();
+    var commandArgs = [];
+    if (/^['"]/.test(commandArgsString)) {
+        commandArgs = parseArgsStringToArgv(commandArgsString, '', '');
+    }
+    else if (commandArgsString) {
+        commandArgs = [commandArgsString];
+    }
+    return __spreadArray(__spreadArray(__spreadArray([], prefixArgs, true), [
+        shellCommandArgMatch[2]
+    ], false), commandArgs, true);
+};
+exports.parseRunCliArguments = parseRunCliArguments;
 var details = function () { return ({
     name: 'Run CLI',
     description: 'Choose a CLI and custom arguments to run',
@@ -80,6 +112,8 @@ var details = function () { return ({
             inputUI: {
                 type: 'dropdown',
                 options: [
+                    'ffmpeg',
+                    'handbrakecli',
                     'mkvmerge',
                     'mkvpropedit',
                 ],
@@ -133,6 +167,11 @@ var details = function () { return ({
             defaultValue: 'true',
             inputUI: {
                 type: 'switch',
+                onSelect: {
+                    false: {
+                        outputFileBecomesWorkingFile: 'false',
+                    },
+                },
             },
             tooltip: 'Toggle this on if the command creates an output file.',
         },
@@ -209,7 +248,7 @@ var details = function () { return ({
 exports.details = details;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function () {
-    var lib, userCli, useCustomCliPath, customCliPath, cliPath, outputFileBecomesWorkingFile, userOutputFilePath, cliArguments, cacheDir, fileName, cliArgs, availableCli, msg, cli, res, msg;
+    var lib, userCli, useCustomCliPath, customCliPath, cliPath, outputFileBecomesWorkingFile, userOutputFilePath, cliArguments, cacheDir, fileName, availableCli, msg, cliArgs, cli, res, msg;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -237,10 +276,11 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     }
                     cliArguments = cliArguments.replace(/\${outputFilePath}/g, userOutputFilePath);
                 }
-                cliArgs = __spreadArray([], args.deps.parseArgsStringToArgv(cliArguments, '', ''), true);
                 availableCli = {
-                    mkvpropedit: args.mkvpropeditPath,
+                    ffmpeg: args.ffmpegPath,
+                    handbrakecli: args.handbrakePath,
                     mkvmerge: 'mkvmerge',
+                    mkvpropedit: args.mkvpropeditPath,
                 };
                 if (useCustomCliPath) {
                     cliPath = customCliPath;
@@ -253,6 +293,7 @@ var plugin = function (args) { return __awaiter(void 0, void 0, void 0, function
                     }
                     cliPath = availableCli[userCli];
                 }
+                cliArgs = parseRunCliArguments(cliPath, cliArguments, args.deps.parseArgsStringToArgv);
                 cli = new cliUtils_1.CLI({
                     cli: cliPath,
                     spawnArgs: cliArgs,
